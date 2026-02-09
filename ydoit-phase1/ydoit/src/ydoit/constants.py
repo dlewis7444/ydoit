@@ -58,3 +58,7 @@ GNOME_TO_MODIFIER: dict[str, str] = {
     "<Shift>": "Shift",
     "<Super>": "Super",
 }
+
+# --- GUI defaults ---
+DEFAULT_WINDOW_WIDTH = 600
+DEFAULT_WINDOW_HEIGHT = 700

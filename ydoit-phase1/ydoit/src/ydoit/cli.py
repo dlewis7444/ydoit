@@ -502,9 +502,14 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.command is None:
-        # No subcommand: show help (GUI launch will be added in Phase 2)
-        parser.print_help()
-        return constants.EXIT_OK
+        # No subcommand: launch GUI if available, otherwise show help
+        try:
+            from ydoit.app import main_gui
+
+            return main_gui()
+        except ImportError:
+            parser.print_help()
+            return constants.EXIT_OK
 
     handlers = {
         "type": _cmd_type,
