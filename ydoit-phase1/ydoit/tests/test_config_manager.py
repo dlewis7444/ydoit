@@ -172,3 +172,25 @@ class TestConfigManager:
         loaded = cm.load(sample_passphrase)
         assert loaded.entries == {}
         assert loaded.version == 2
+
+    def test_change_passphrase(
+        self, cm: ConfigManager, sample_config: Config, sample_passphrase: str
+    ) -> None:
+        cm.save(sample_config, sample_passphrase)
+        new_pass = "new-passphrase-99999"
+        cm.change_passphrase(sample_passphrase, new_pass)
+
+        # Old passphrase should now fail
+        with pytest.raises(DecryptionError):
+            cm.load(sample_passphrase)
+
+        # New passphrase should work
+        loaded = cm.load(new_pass)
+        assert set(loaded.entries.keys()) == set(sample_config.entries.keys())
+
+    def test_change_passphrase_wrong_old_raises(
+        self, cm: ConfigManager, sample_config: Config, sample_passphrase: str
+    ) -> None:
+        cm.save(sample_config, sample_passphrase)
+        with pytest.raises(DecryptionError):
+            cm.change_passphrase("wrong-old", "new-pass")

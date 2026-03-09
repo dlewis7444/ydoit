@@ -123,6 +123,20 @@ class ConfigManager:
         finally:
             self._enforce_permissions()
 
+    def change_passphrase(self, old_passphrase: str, new_passphrase: str) -> None:
+        """Re-encrypt the config file with a new passphrase.
+
+        Args:
+            old_passphrase: Current GPG passphrase (used to decrypt).
+            new_passphrase: New GPG passphrase (used to re-encrypt).
+
+        Raises:
+            DecryptionError: old_passphrase is wrong or file is corrupt.
+            EncryptionError: Re-encryption failed.
+        """
+        config = self.load(passphrase=old_passphrase)
+        self.save(config, passphrase=new_passphrase)
+
     def _decrypt(self, passphrase: str) -> str:
         """Decrypt the data file using GPG.
 
