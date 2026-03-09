@@ -236,7 +236,7 @@ class EntryEditorPage(Adw.NavigationPage):
         dlg.set_response_appearance("delete", Adw.ResponseAppearance.DESTRUCTIVE)
         dlg.set_default_response("cancel")
         dlg.set_close_response("cancel")
-        dlg.choose_async(self.get_root(), None, self._on_delete_confirmed)
+        dlg.choose(self.get_root(), None, self._on_delete_confirmed)
 
     def _on_delete_confirmed(self, dlg: object, result: object) -> None:
         response = dlg.choose_finish(result)
@@ -255,7 +255,7 @@ class EntryEditorPage(Adw.NavigationPage):
         dlg = Adw.AlertDialog(heading="Error", body=message)
         dlg.add_response("ok", "OK")
         dlg.set_default_response("ok")
-        dlg.choose_async(self.get_root(), None, lambda d, r: None)
+        dlg.choose(self.get_root(), None, lambda d, r: None)
 
     def _show_conflict_dialog(
         self, conflict: object, on_save_anyway: object
@@ -279,4 +279,4 @@ class EntryEditorPage(Adw.NavigationPage):
             if d.choose_finish(r) == "save":
                 on_save_anyway()
 
-        dlg.choose_async(self.get_root(), None, _on_response)
+        dlg.choose(self.get_root(), None, _on_response)

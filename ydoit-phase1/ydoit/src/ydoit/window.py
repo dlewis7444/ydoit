@@ -230,4 +230,4 @@ class MainWindow(Adw.ApplicationWindow):
         dlg = Adw.AlertDialog(heading="Error", body=message)
         dlg.add_response("ok", "OK")
         dlg.set_default_response("ok")
-        dlg.choose_async(self, None, lambda d, r: None)
+        dlg.choose(self, None, lambda d, r: None)

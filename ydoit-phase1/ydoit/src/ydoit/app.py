@@ -59,7 +59,7 @@ class YdoitApp(Adw.Application):
         from ydoit.passphrase_dialog import PassphraseDialog
 
         dlg = PassphraseDialog(error_message=error)
-        dlg.choose_async(self._main_window, None, self._on_auth_response)
+        dlg.choose(self._main_window, None, self._on_auth_response)
 
     def _on_auth_response(self, dlg: object, result: object) -> None:
         from ydoit.passphrase_dialog import PassphraseDialog
