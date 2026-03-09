@@ -660,15 +660,13 @@ class TestFindConflict:
         result = mgr.find_conflict("Alt+Tab")
         assert result is None
 
-    def test_returns_none_when_gio_unavailable_for_builtins(
+    def test_raises_when_gio_unavailable(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         monkeypatch.setitem(sys.modules, "gi", None)
         mgr = ShortcutManager()
-        # _check_gio returns False → get_all_custom_shortcuts returns []
-        # _check_builtin_conflict also returns None immediately
-        result = mgr.find_conflict("Super+F11")
-        assert result is None
+        with pytest.raises(GioNotAvailableError):
+            mgr.find_conflict("Super+F11")
 
 
 # ---------------------------------------------------------------------------
