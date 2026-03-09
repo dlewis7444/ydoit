@@ -677,11 +677,12 @@ class TestFindConflict:
 class TestRegisterShortcut:
     """Tests for ShortcutManager.register_shortcut."""
 
-    def test_does_nothing_when_gio_unavailable(self) -> None:
+    def test_raises_when_gio_unavailable(self) -> None:
         mgr = ShortcutManager()
         mgr._gio_available = False
         entry = make_entry()
-        mgr.register_shortcut(entry)  # must not raise
+        with pytest.raises(GioNotAvailableError):
+            mgr.register_shortcut(entry)
 
     def test_does_nothing_when_keycombo_empty(
         self, manager_with_gio: tuple[ShortcutManager, mock.MagicMock]
@@ -754,10 +755,11 @@ class TestRegisterShortcut:
 class TestUnregisterShortcut:
     """Tests for ShortcutManager.unregister_shortcut."""
 
-    def test_does_nothing_when_gio_unavailable(self) -> None:
+    def test_raises_when_gio_unavailable(self) -> None:
         mgr = ShortcutManager()
         mgr._gio_available = False
-        mgr.unregister_shortcut("home1")  # must not raise
+        with pytest.raises(GioNotAvailableError):
+            mgr.unregister_shortcut("home1")
 
     def test_does_nothing_when_entry_not_found(
         self, manager_with_gio: tuple[ShortcutManager, mock.MagicMock]
@@ -808,10 +810,11 @@ class TestUnregisterShortcut:
 class TestClearAllYdoitShortcuts:
     """Tests for ShortcutManager.clear_all_ydoit_shortcuts."""
 
-    def test_returns_zero_when_gio_unavailable(self) -> None:
+    def test_raises_when_gio_unavailable(self) -> None:
         mgr = ShortcutManager()
         mgr._gio_available = False
-        assert mgr.clear_all_ydoit_shortcuts() == 0
+        with pytest.raises(GioNotAvailableError):
+            mgr.clear_all_ydoit_shortcuts()
 
     def test_returns_zero_when_no_ydoit_shortcuts(
         self, manager_with_gio: tuple[ShortcutManager, mock.MagicMock]
