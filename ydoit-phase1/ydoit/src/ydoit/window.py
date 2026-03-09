@@ -75,7 +75,9 @@ class MainWindow(Adw.ApplicationWindow):
         export_btn.connect("clicked", self._on_export_clicked)
         settings_btn = Gtk.Button(label="Settings")
         settings_btn.connect("clicked", self._on_settings_clicked)
-        for btn in (import_btn, export_btn, settings_btn):
+        sync_btn = Gtk.Button(label="Sync Now")
+        sync_btn.connect("clicked", self._on_sync_clicked)
+        for btn in (import_btn, export_btn, settings_btn, sync_btn):
             btn.add_css_class("flat")
 
         footer_box = Gtk.Box(
@@ -90,6 +92,7 @@ class MainWindow(Adw.ApplicationWindow):
         footer_box.append(export_btn)
         spacer = Gtk.Box(hexpand=True)
         footer_box.append(spacer)
+        footer_box.append(sync_btn)
         footer_box.append(settings_btn)
 
         separator = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
@@ -165,6 +168,11 @@ class MainWindow(Adw.ApplicationWindow):
         app = self.get_application()
         app.save_config()
         self._rebuild_list()
+
+    def _on_sync_clicked(self, *args: object) -> None:
+        app = self.get_application()
+        app.save_config()
+        self.show_toast("Synced")
 
     def _on_settings_clicked(self, *args: object) -> None:
         from ydoit.settings_page import SettingsPage
