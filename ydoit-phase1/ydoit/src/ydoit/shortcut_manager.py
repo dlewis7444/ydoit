@@ -169,6 +169,7 @@ class ShortcutManager:
         Returns:
             ConflictInfo if a conflict exists, None otherwise.
         """
+        self._require_gio()
         gnome_binding = self.to_gnome_binding(keycombo)
 
         # Check all custom shortcuts
