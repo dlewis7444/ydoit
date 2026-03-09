@@ -917,13 +917,77 @@ class TestSync:
 
         return media_keys_mock
 
-    def test_returns_error_when_gio_unavailable(self) -> None:
+    def test_raises_when_gio_unavailable(self) -> None:
         mgr = ShortcutManager()
         mgr._gio_available = False
         config = make_config()
+        with pytest.raises(GioNotAvailableError):
+            mgr.sync(config)
+
+    def test_preflight_conflict_returns_errors_without_mutating(
+        self, manager_with_gio: tuple[ShortcutManager, mock.MagicMock]
+    ) -> None:
+        """Pre-flight detects conflict; sync returns errors and makes no changes."""
+        mgr, gio = manager_with_gio
+        # Existing non-ydoit shortcut already holds <Super>F11
+        media_keys_mock = self._setup(
+            gio,
+            [
+                {
+                    "path": f"{BASE_PATH}/custom0/",
+                    "name": "Screenshot Tool",
+                    "command": "/usr/bin/scrot.sh",
+                    "binding": "<Super>F11",
+                }
+            ],
+        )
+        # Schema source returns None so builtin check finds nothing
+        gio.SettingsSchemaSource.get_default.return_value = None
+
+        config = make_config(make_entry("home1", "Super+F11", "Home Password"))
         result = mgr.sync(config)
-        assert len(result.errors) > 0
+
+        assert len(result.errors) == 1
+        assert "home1" in result.errors[0]
         assert result.total_changes == 0
+        # No shortcuts were added
+        media_keys_mock.set_strv.assert_not_called()
+
+    def test_preflight_skips_entries_without_keycombo(
+        self, manager_with_gio: tuple[ShortcutManager, mock.MagicMock]
+    ) -> None:
+        """Entries with no keycombo are excluded from conflict pre-flight."""
+        mgr, gio = manager_with_gio
+        self._setup(gio, [])
+        gio.SettingsSchemaSource.get_default.return_value = None
+
+        config = make_config(Entry(name="nokey", keycombo="", string="hello"))
+        result = mgr.sync(config)
+
+        assert not result.errors
+
+    def test_preflight_excludes_own_existing_shortcut(
+        self, manager_with_gio: tuple[ShortcutManager, mock.MagicMock]
+    ) -> None:
+        """Re-syncing an entry that already owns its shortcut does not self-conflict."""
+        mgr, gio = manager_with_gio
+        self._setup(
+            gio,
+            [
+                {
+                    "path": f"{BASE_PATH}/custom0/",
+                    "name": "ydoit: Home Password",
+                    "command": "ydoit type home1",
+                    "binding": "<Super>F11",
+                }
+            ],
+        )
+        gio.SettingsSchemaSource.get_default.return_value = None
+
+        config = make_config(make_entry("home1", "Super+F11", "Home Password"))
+        result = mgr.sync(config)
+
+        assert not result.errors
 
     def test_adds_new_entries(
         self, manager_with_gio: tuple[ShortcutManager, mock.MagicMock]
@@ -1065,9 +1129,11 @@ class TestSync:
         mgr, gio = manager_with_gio
 
         media_keys_mock = mock.MagicMock()
-        # First get_strv returns [] so current map is empty;
-        # second call (inside _register_new_shortcut) raises.
+        # First get_strv is consumed by the pre-flight find_conflict call;
+        # second returns [] so current map is empty;
+        # third call (inside _register_new_shortcut) raises.
         media_keys_mock.get_strv.side_effect = [
+            [],                         # pre-flight: find_conflict → get_all_custom_shortcuts
             [],                         # scan: no existing shortcuts
             RuntimeError("no space"),   # _register_new_shortcut: get paths
         ]
@@ -1122,6 +1188,7 @@ class TestSync:
         # _register_new_shortcut), return the two pre-existing non-ydoit paths
         # so the index-allocation logic sees indices 0 and 1 as taken.
         media_keys_mock.get_strv.side_effect = [
+            [],             # pre-flight: find_conflict → get_all_custom_shortcuts
             [],             # get_ydoit_shortcuts → empty
             [path0, path1], # _register_new_shortcut → pick index 2
         ]

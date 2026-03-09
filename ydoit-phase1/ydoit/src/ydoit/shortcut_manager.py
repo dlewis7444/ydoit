@@ -256,12 +256,24 @@ class ShortcutManager:
         Returns:
             SyncResult with counts of changes made.
         """
-        if not self._check_gio():
-            return SyncResult(errors=["Gio.Settings not available"])
+        self._require_gio()
 
         result = SyncResult()
         current = {s.entry_name: s for s in self.get_ydoit_shortcuts() if s.entry_name}
         desired = config.entries
+
+        # Pre-flight: check all keyed entries for conflicts before any mutations
+        for entry_name, entry in desired.items():
+            if not entry.keycombo:
+                continue
+            conflict = self.find_conflict(entry.keycombo, exclude_entry=entry_name)
+            if conflict:
+                result.errors.append(
+                    f"Shortcut {entry.keycombo!r} for {entry_name!r} conflicts with "
+                    f"{conflict.existing_source} shortcut {conflict.existing_name!r}"
+                )
+        if result.errors:
+            return result
 
         # Remove stale shortcuts
         for entry_name in set(current) - set(desired):
