@@ -40,7 +40,8 @@ dev = [
 ]
 
 [project.scripts]
-ydoit = "ydoit.cli:main"
+ydoit     = "ydoit.cli:main"
+ydoit-gui = "ydoit.app:main"
 
 [project.urls]
 Homepage = "https://github.com/ydoit/ydoit"
