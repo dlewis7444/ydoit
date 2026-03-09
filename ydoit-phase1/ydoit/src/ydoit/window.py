@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 from gi.repository import Adw, Gtk
 
-from ydoit.models import Config
+if TYPE_CHECKING:
+    from ydoit.models import Config
 
 
 class MainWindow(Adw.ApplicationWindow):
