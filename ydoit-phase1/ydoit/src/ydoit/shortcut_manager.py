@@ -215,6 +215,7 @@ class ShortcutManager:
             "org.gnome.shell.keybindings",
             "org.gnome.mutter.keybindings",
             "org.gnome.mutter.wayland.keybindings",
+            "org.gnome.settings-daemon.plugins.media-keys",
         ]
 
         schema_source = Gio.SettingsSchemaSource.get_default()
@@ -401,6 +402,9 @@ class ShortcutManager:
         paths.append(new_path)
         settings.set_strv(constants.CUSTOM_KEYBINDING_KEY, paths)
 
+        from gi.repository import Gio
+        Gio.Settings.sync()
+
     def _remove_shortcut_path(self, path: str) -> None:
         """Remove a custom keybinding by its dconf path."""
         settings = self._get_media_keys_settings()
@@ -416,6 +420,9 @@ class ShortcutManager:
         if path in paths:
             paths.remove(path)
             settings.set_strv(constants.CUSTOM_KEYBINDING_KEY, paths)
+
+            from gi.repository import Gio
+            Gio.Settings.sync()
 
     # --- Format conversion ---
 

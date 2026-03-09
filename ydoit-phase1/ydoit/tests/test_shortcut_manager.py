@@ -668,6 +668,42 @@ class TestFindConflict:
         with pytest.raises(GioNotAvailableError):
             mgr.find_conflict("Super+F11")
 
+    def test_conflict_with_media_keys_builtin_shortcut(
+        self, manager_with_gio: tuple[ShortcutManager, mock.MagicMock]
+    ) -> None:
+        """Super+F1 conflicts with media-keys 'help' shortcut."""
+        mgr, gio = manager_with_gio
+
+        from ydoit import constants
+
+        # Single mock for media-keys schema: no custom shortcuts, but 'help' → <Super>F1
+        media_keys_mock = mock.MagicMock()
+
+        def _get_strv(key: str) -> list[str]:
+            if key == constants.CUSTOM_KEYBINDING_KEY:
+                return []
+            if key == "help":
+                return ["<Super>F1"]
+            return []
+
+        media_keys_mock.get_strv.side_effect = _get_strv
+        gio.Settings.new.side_effect = lambda schema_id: media_keys_mock
+        gio.Settings.new_with_path.return_value = mock.MagicMock()
+
+        media_keys_schema = mock.MagicMock()
+        media_keys_schema.list_keys.return_value = ["help"]
+
+        schema_source = mock.MagicMock()
+        schema_source.lookup.side_effect = lambda schema_id, recursive: (
+            media_keys_schema if schema_id == constants.MEDIA_KEYS_SCHEMA else None
+        )
+        gio.SettingsSchemaSource.get_default.return_value = schema_source
+
+        result = mgr.find_conflict("Super+F1")
+        assert result is not None
+        assert result.existing_source == "builtin"
+        assert result.existing_path is None
+
 
 # ---------------------------------------------------------------------------
 # TestRegisterShortcut
@@ -746,6 +782,22 @@ class TestRegisterShortcut:
         new_kb.set_string.assert_any_call("binding", "<Super>F11")
         media_keys_mock.set_strv.assert_called_once()
 
+    def test_calls_gio_settings_sync_after_register(
+        self, manager_with_gio: tuple[ShortcutManager, mock.MagicMock]
+    ) -> None:
+        """Gio.Settings.sync() is called after registering a new shortcut."""
+        mgr, gio = manager_with_gio
+
+        media_keys_mock = mock.MagicMock()
+        media_keys_mock.get_strv.return_value = []
+        gio.Settings.new.side_effect = lambda schema_id: media_keys_mock
+        gio.Settings.new_with_path.return_value = mock.MagicMock()
+
+        entry = make_entry(name="home1", keycombo="Super+F11", label="Home Password")
+        mgr.register_shortcut(entry)
+
+        gio.Settings.sync.assert_called()
+
 
 # ---------------------------------------------------------------------------
 # TestUnregisterShortcut
@@ -800,6 +852,33 @@ class TestUnregisterShortcut:
         write_kb.reset.assert_any_call("command")
         write_kb.reset.assert_any_call("binding")
         media_keys_mock.set_strv.assert_called_once()
+
+    def test_calls_gio_settings_sync_after_unregister(
+        self, manager_with_gio: tuple[ShortcutManager, mock.MagicMock]
+    ) -> None:
+        """Gio.Settings.sync() is called after unregistering a shortcut."""
+        mgr, gio = manager_with_gio
+        target_path = f"{BASE_PATH}/custom0/"
+
+        media_keys_mock = mock.MagicMock()
+        media_keys_mock.get_strv.return_value = [target_path]
+
+        read_kb = _make_kb_settings("ydoit: Home Password", "ydoit type home1", "<Super>F11")
+        write_kb = mock.MagicMock()
+        call_count = {"n": 0}
+
+        def _new_with_path(schema_id: str, path: str) -> mock.MagicMock:
+            call_count["n"] += 1
+            if call_count["n"] == 1:
+                return read_kb
+            return write_kb
+
+        gio.Settings.new.side_effect = lambda schema_id: media_keys_mock
+        gio.Settings.new_with_path.side_effect = _new_with_path
+
+        mgr.unregister_shortcut("home1")
+
+        gio.Settings.sync.assert_called()
 
 
 # ---------------------------------------------------------------------------
@@ -863,6 +942,23 @@ class TestClearAllYdoitShortcuts:
 
         count = mgr.clear_all_ydoit_shortcuts()
         assert count == 2
+
+    def test_calls_gio_settings_sync_after_clear(
+        self, manager_with_gio: tuple[ShortcutManager, mock.MagicMock]
+    ) -> None:
+        """Gio.Settings.sync() is called after clearing ydoit shortcuts."""
+        mgr, gio = manager_with_gio
+        path0 = f"{BASE_PATH}/custom0/"
+
+        media_keys_mock = mock.MagicMock()
+        media_keys_mock.get_strv.return_value = [path0]
+        kb_mock = _make_kb_settings("ydoit: Home Password", "ydoit type home1", "<Super>F11")
+        gio.Settings.new.side_effect = lambda schema_id: media_keys_mock
+        gio.Settings.new_with_path.return_value = kb_mock
+
+        mgr.clear_all_ydoit_shortcuts()
+
+        gio.Settings.sync.assert_called()
 
 
 # ---------------------------------------------------------------------------
@@ -1204,3 +1300,16 @@ class TestSync:
         assert call_args is not None
         paths_written = call_args[0][1]
         assert any("custom2" in p for p in paths_written)
+
+    def test_calls_gio_settings_sync_when_changes_made(
+        self, manager_with_gio: tuple[ShortcutManager, mock.MagicMock]
+    ) -> None:
+        """Gio.Settings.sync() is called after sync writes shortcut changes."""
+        mgr, gio = manager_with_gio
+        self._setup(gio, [])  # no existing shortcuts
+        gio.SettingsSchemaSource.get_default.return_value = None
+
+        config = make_config(make_entry("home1", "Super+F11", "Home Password"))
+        mgr.sync(config)
+
+        gio.Settings.sync.assert_called()
