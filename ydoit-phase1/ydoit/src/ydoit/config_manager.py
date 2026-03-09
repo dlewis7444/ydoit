@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import fcntl
 import json
 import os
@@ -234,9 +235,10 @@ class ConfigManager:
         """Create the config directory with correct permissions if needed."""
         try:
             self.config_dir.mkdir(parents=True, exist_ok=True)
-            os.chmod(self.config_dir, 0o700)
         except OSError as e:
             raise ConfigDirError(f"Cannot create config directory {self.config_dir}: {e}") from e
+        with contextlib.suppress(OSError):
+            os.chmod(self.config_dir, 0o700)  # Best-effort — skip if we don't own the directory
 
     def _enforce_permissions(self) -> None:
         """Ensure the config dir and data file have restrictive permissions."""

@@ -625,6 +625,19 @@ class TestCmdSyncShortcuts:
         err = capsys.readouterr().err
         assert "Failed to add home1" in err
 
+    def test_gio_unavailable_fails_hard(
+        self, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture,
+        sample_config: Config
+    ) -> None:
+        """When Gio is unavailable, sync-shortcuts hard-fails."""
+        sm = _make_sm()
+        sm.sync.side_effect = GioNotAvailableError()
+        self._setup_sync(monkeypatch, exists=True, config=sample_config, sm=sm)
+        result = main(["sync-shortcuts"])
+        assert result == constants.EXIT_ERROR
+        err = capsys.readouterr().err
+        assert "Gio" in err or "python3-gobject" in err
+
 
 # ---------------------------------------------------------------------------
 # TestCmdExport

@@ -298,7 +298,11 @@ def _cmd_sync_shortcuts(args: argparse.Namespace) -> int:
 
     config = cm.load()
     sm = ShortcutManager()
-    result = sm.sync(config)
+    try:
+        result = sm.sync(config)
+    except GioNotAvailableError as e:
+        _error(str(e))
+        return constants.EXIT_ERROR
 
     if result.total_changes == 0 and not result.errors:
         _info("Shortcuts are in sync")
