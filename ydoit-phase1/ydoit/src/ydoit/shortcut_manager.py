@@ -312,8 +312,7 @@ class ShortcutManager:
         Args:
             entry: The entry to register a shortcut for.
         """
-        if not self._check_gio():
-            return
+        self._require_gio()
 
         if not entry.keycombo:
             return
@@ -339,8 +338,7 @@ class ShortcutManager:
         Args:
             entry_name: The entry name whose shortcut to remove.
         """
-        if not self._check_gio():
-            return
+        self._require_gio()
 
         for shortcut in self.get_ydoit_shortcuts():
             if shortcut.entry_name == entry_name:
@@ -353,8 +351,7 @@ class ShortcutManager:
         Returns:
             Number of shortcuts removed.
         """
-        if not self._check_gio():
-            return 0
+        self._require_gio()
 
         count = 0
         for shortcut in self.get_ydoit_shortcuts():
