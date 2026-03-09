@@ -205,7 +205,7 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _on_export_clicked(self, *args: object) -> None:
         dialog = Gtk.FileDialog()
-        dialog.set_initial_filename("ydoit-export.json")
+        dialog.set_initial_name("ydoit-export.json")
         dialog.save(self, None, self._on_export_file_chosen)
 
     def _on_export_file_chosen(self, dialog: Gtk.FileDialog, result: object) -> None:
