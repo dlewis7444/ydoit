@@ -1,4 +1,5 @@
 .claude/
+.worktrees/
 
 # Python
 __pycache__/
@@ -29,3 +30,6 @@ htmlcov/
 # OS
 .DS_Store
 Thumbs.db
+
+# Sensitive data
+data.json
