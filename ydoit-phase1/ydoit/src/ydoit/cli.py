@@ -306,6 +306,8 @@ def _cmd_sync_shortcuts(args: argparse.Namespace) -> int:
 
     if result.total_changes == 0 and not result.errors:
         _info("Shortcuts are in sync")
+    elif result.errors:
+        _error(f"Sync complete: {result}")
     else:
         _info(f"Sync complete: {result}")
 
