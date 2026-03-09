@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 from ydoit import constants
+from ydoit.exceptions import GioNotAvailableError
 
 if TYPE_CHECKING:
     from ydoit.models import Config, Entry
@@ -97,6 +98,11 @@ class ShortcutManager:
             except (ImportError, ValueError):
                 self._gio_available = False
         return self._gio_available
+
+    def _require_gio(self) -> None:
+        """Raise GioNotAvailableError if Gio.Settings is not available."""
+        if not self._check_gio():
+            raise GioNotAvailableError()
 
     def _get_media_keys_settings(self) -> Any:
         """Get the Gio.Settings for media-keys."""
