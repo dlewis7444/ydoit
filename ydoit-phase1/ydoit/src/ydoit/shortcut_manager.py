@@ -230,7 +230,10 @@ class ShortcutManager:
             settings = Gio.Settings.new(schema_id)
             for key_name in schema.list_keys():
                 try:
-                    bindings = settings.get_strv(key_name)
+                    value = settings.get_value(key_name)
+                    if value.get_type_string() != "as":
+                        continue
+                    bindings = value.get_strv()
                     for binding in bindings:
                         if binding.lower() == gnome_binding.lower():
                             return ConflictInfo(

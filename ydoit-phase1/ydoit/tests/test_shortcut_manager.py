@@ -588,7 +588,10 @@ class TestFindConflict:
         media_keys_mock.get_strv.return_value = []  # no custom shortcuts
 
         builtin_settings = mock.MagicMock()
-        builtin_settings.get_strv.return_value = ["<Alt>Tab"]
+        alt_tab_value = mock.MagicMock()
+        alt_tab_value.get_type_string.return_value = "as"
+        alt_tab_value.get_strv.return_value = ["<Alt>Tab"]
+        builtin_settings.get_value.return_value = alt_tab_value
 
         # Both _get_media_keys_settings and the builtin schema settings call
         # Gio.Settings.new — the media-keys call uses the MEDIA_KEYS_SCHEMA,
@@ -644,7 +647,7 @@ class TestFindConflict:
         media_keys_mock.get_strv.return_value = []
 
         bad_settings = mock.MagicMock()
-        bad_settings.get_strv.side_effect = RuntimeError("no such key")
+        bad_settings.get_value.side_effect = RuntimeError("no such key")
 
         def _new(schema_id: str) -> mock.MagicMock:
             if schema_id == constants.MEDIA_KEYS_SCHEMA:
@@ -676,17 +679,15 @@ class TestFindConflict:
 
         from ydoit import constants
 
-        # Single mock for media-keys schema: no custom shortcuts, but 'help' → <Super>F1
+        # media-keys mock: no custom shortcuts (get_strv), 'help' → <Super>F1 (get_value)
         media_keys_mock = mock.MagicMock()
+        media_keys_mock.get_strv.return_value = []  # no custom shortcuts
 
-        def _get_strv(key: str) -> list[str]:
-            if key == constants.CUSTOM_KEYBINDING_KEY:
-                return []
-            if key == "help":
-                return ["<Super>F1"]
-            return []
+        help_value = mock.MagicMock()
+        help_value.get_type_string.return_value = "as"
+        help_value.get_strv.return_value = ["<Super>F1"]
+        media_keys_mock.get_value.return_value = help_value
 
-        media_keys_mock.get_strv.side_effect = _get_strv
         gio.Settings.new.side_effect = lambda schema_id: media_keys_mock
         gio.Settings.new_with_path.return_value = mock.MagicMock()
 
