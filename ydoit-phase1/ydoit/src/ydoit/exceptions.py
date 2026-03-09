@@ -75,3 +75,14 @@ class GpgNotFoundError(YdoitError):
             "Install it with: sudo dnf install gnupg2  (Fedora) or "
             "sudo apt install gnupg  (Ubuntu)"
         )
+
+
+class GioNotAvailableError(YdoitError):
+    """Gio.Settings is not available (python3-gobject not installed)."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            "Gio.Settings not available — install python3-gobject (system package). "
+            "Fedora: sudo dnf install python3-gobject  "
+            "Ubuntu: sudo apt install python3-gi"
+        )
