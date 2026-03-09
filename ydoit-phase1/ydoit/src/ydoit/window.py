@@ -44,6 +44,13 @@ class MainWindow(Adw.ApplicationWindow):
         toast = Adw.Toast(title=message)
         self._toast_overlay.add_toast(toast)
 
+    def show_alert(self, heading: str, body: str) -> None:
+        """Show a modal alert dialog for messages that must be fully readable."""
+        dlg = Adw.AlertDialog(heading=heading, body=body)
+        dlg.add_response("ok", "OK")
+        dlg.set_default_response("ok")
+        dlg.choose(self, None, lambda d, r: None)
+
     # --- Main page construction ---
 
     def _build_main_page(self) -> Adw.NavigationPage:

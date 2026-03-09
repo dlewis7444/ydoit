@@ -97,8 +97,10 @@ class YdoitApp(Adw.Application):
             try:
                 result = self._sm.sync(self._config)
                 if result.errors:
-                    for err in result.errors:
-                        self._main_window.show_toast(f"Sync warning: {err}")
+                    self._main_window.show_alert(
+                        "Sync Warning",
+                        "\n".join(str(e) for e in result.errors),
+                    )
             except GioNotAvailableError:
                 self._gio_available = False
 
