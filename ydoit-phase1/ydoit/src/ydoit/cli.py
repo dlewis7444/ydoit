@@ -7,12 +7,17 @@ import getpass
 import json
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 from ydoit import __version__, constants
 from ydoit.config_manager import ConfigManager
 from ydoit.exceptions import (
     DecryptionError,
     EntryNotFoundError,
+    GioNotAvailableError,
     GpgNotFoundError,
     InvalidEntryNameError,
     YdoitError,
@@ -66,7 +71,7 @@ def _prompt_passphrase(confirm: bool = False) -> str:
     return passphrase
 
 
-def _get_passphrase_provider(new_file: bool = False) -> callable:
+def _get_passphrase_provider(new_file: bool = False) -> Callable[[], str]:
     """Return a passphrase provider callback."""
 
     def provider() -> str:
@@ -212,19 +217,20 @@ def _cmd_add(args: argparse.Namespace) -> int:
         _error(f"Entry {args.name!r} already exists. Use 'ydoit edit' to modify it.")
         return constants.EXIT_ERROR
 
-    # Check for shortcut conflict
+    # Check for shortcut conflict — must happen before saving
     if args.keycombo:
         sm = ShortcutManager()
-        conflict = sm.find_conflict(args.keycombo)
+        try:
+            conflict = sm.find_conflict(args.keycombo)
+        except GioNotAvailableError as e:
+            _error(str(e))
+            return constants.EXIT_ERROR
         if conflict:
-            _error(
-                f"Shortcut {args.keycombo!r} is already used by "
+            _warn(
+                f"Shortcut {args.keycombo!r} conflicts with "
                 f"{conflict.existing_source} shortcut {conflict.existing_name!r}"
+                " — registering anyway"
             )
-            if not args.force:
-                _warn("Use --force to reassign the shortcut")
-                return constants.EXIT_SHORTCUT_CONFLICT
-            _warn("Forcing reassignment...")
 
     entry = Entry(
         name=args.name,
@@ -242,7 +248,6 @@ def _cmd_add(args: argparse.Namespace) -> int:
 
     # Sync shortcuts
     if entry.keycombo:
-        sm = ShortcutManager()
         sm.register_shortcut(entry)
         _info(f"Registered shortcut {entry.keycombo}")
 
@@ -466,10 +471,6 @@ def build_parser() -> argparse.ArgumentParser:
     add_p.add_argument("--file", "-f", default="", dest="filename", help="File to type contents of")
     add_p.add_argument("--label", "-l", default="", help="Display label")
     add_p.add_argument("--category", "-c", default="", help="Category for grouping")
-    add_p.add_argument(
-        "--force", action="store_true", help="Force reassignment on shortcut conflict"
-    )
-
     # remove
     remove_p = subparsers.add_parser("remove", help="Remove an entry")
     remove_p.add_argument("name", help="Entry name to remove")
