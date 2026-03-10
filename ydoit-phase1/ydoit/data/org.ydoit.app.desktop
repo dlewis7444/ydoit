@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=ydoit
+Comment=Keyboard shortcut auto-typer for GNOME/Wayland
+Exec=ydoit-gui
+Icon=org.ydoit.app
+Terminal=false
+Type=Application
+StartupNotify=true
+Categories=GNOME;GTK;Utility;
+Keywords=keyboard;shortcut;autotype;password;typing;macro;

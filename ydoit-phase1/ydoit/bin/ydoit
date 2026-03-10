@@ -1,0 +1,4 @@
+#!/usr/bin/python3
+import sys
+from ydoit.cli import main
+sys.exit(main())
