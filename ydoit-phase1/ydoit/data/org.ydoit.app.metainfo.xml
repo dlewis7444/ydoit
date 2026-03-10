@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>org.ydoit.app</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>ydoit</name>
+  <summary>Keyboard shortcut auto-typer for GNOME/Wayland</summary>
+
+  <description>
+    <p>
+      ydoit lets you bind GNOME keyboard shortcuts that automatically type
+      predefined strings into the active window. It stores entries in a
+      GPG-encrypted configuration file, syncs keybindings with GNOME, and
+      delivers keystrokes natively on Wayland via ydotool.
+    </p>
+    <ul>
+      <li>GPG encryption for all stored entries</li>
+      <li>GNOME keybinding integration via Gio.Settings</li>
+      <li>Wayland-native keystroke delivery via ydotool</li>
+      <li>GNOME Keyring passphrase caching via libsecret</li>
+      <li>Type arbitrary strings or file contents on demand</li>
+    </ul>
+  </description>
+
+  <launchable type="desktop-id">org.ydoit.app.desktop</launchable>
+
+  <releases>
+    <release version="2.0.0" date="2026-03-10">
+      <description>
+        <p>Initial release with CLI and GTK4/libadwaita GUI.</p>
+      </description>
+    </release>
+  </releases>
+
+  <content_rating type="oars-1.1"/>
+
+  <url type="homepage">https://github.com/ydoit/ydoit</url>
+  <url type="bugtracker">https://github.com/ydoit/ydoit/issues</url>
+</component>
