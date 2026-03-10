@@ -19,7 +19,7 @@ class MainWindow(Adw.ApplicationWindow):
 
     def __init__(self, **kwargs: object) -> None:
         super().__init__(**kwargs)
-        self.set_title("ydoit")
+        self.set_title("ydoit Manager")
         self.set_default_size(600, 700)
         self._groups: list[Adw.PreferencesGroup] = []
         self._config: Config | None = None
@@ -54,7 +54,7 @@ class MainWindow(Adw.ApplicationWindow):
     # --- Main page construction ---
 
     def _build_main_page(self) -> Adw.NavigationPage:
-        page = Adw.NavigationPage(title="ydoit")
+        page = Adw.NavigationPage(title="ydoit Manager")
 
         # Header bar
         header = Adw.HeaderBar()
