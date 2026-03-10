@@ -7,9 +7,9 @@ Map keyboard shortcuts to auto-type actions — type out strings, passwords, or 
 ## Quick Start (Development)
 
 ```bash
-git clone https://github.com/ydoit/ydoit.git
+git clone <repo-url>
 cd ydoit
-python -m venv .venv
+python -m venv --system-site-packages .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
 pytest
@@ -44,10 +44,6 @@ ydoit export backup.json --plain          # Export unencrypted
 ydoit import backup.json                  # Import entries
 ydoit remove mypass                       # Remove an entry
 ```
-
-## Architecture
-
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full architecture diagram and module breakdown.
 
 ## License
 
