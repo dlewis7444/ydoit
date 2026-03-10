@@ -106,7 +106,7 @@ class KeyringManager:
                 return None
 
             # Check expiry (if timeout > 0)
-            if timeout_min > 0 and self._is_expired(timeout_min):
+            if timeout_min > 0 and self.is_expired(timeout_min):
                 self.clear_passphrase()
                 return None
 
@@ -114,7 +114,7 @@ class KeyringManager:
         except Exception:
             return None
 
-    def _is_expired(self, timeout_min: int) -> bool:
+    def is_expired(self, timeout_min: int) -> bool:
         """Check if the stored passphrase has expired.
 
         We retrieve the item to check its stored_at attribute.

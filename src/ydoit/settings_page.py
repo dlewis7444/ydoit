@@ -18,6 +18,7 @@ class SettingsPage(Adw.NavigationPage):
 
     def __init__(self) -> None:
         super().__init__(title="Settings")
+        self._populating = False
         self._build_ui()
         self._populate()
 
@@ -61,22 +62,28 @@ class SettingsPage(Adw.NavigationPage):
     def _populate(self) -> None:
         from ydoit import constants
 
-        app = Gtk.Application.get_default()
+        self._populating = True
+        try:
+            app = Gtk.Application.get_default()
 
-        if app is None:
-            self._typing_delay.set_value(constants.DEFAULT_TYPING_DELAY_MS)
-            self._hold_delay.set_value(constants.DEFAULT_HOLD_DELAY_MS)
-            self._keyring_switch.set_active(True)
-            self._keyring_timeout.set_value(constants.DEFAULT_KEYRING_TIMEOUT_MIN)
-            return
+            if app is None:
+                self._typing_delay.set_value(constants.DEFAULT_TYPING_DELAY_MS)
+                self._hold_delay.set_value(constants.DEFAULT_HOLD_DELAY_MS)
+                self._keyring_switch.set_active(True)
+                self._keyring_timeout.set_value(constants.DEFAULT_KEYRING_TIMEOUT_MIN)
+                return
 
-        s = app.config.settings
-        self._typing_delay.set_value(s.typing_delay_ms)
-        self._hold_delay.set_value(s.hold_delay_ms)
-        self._keyring_switch.set_active(s.use_keyring_cache)
-        self._keyring_timeout.set_value(s.keyring_timeout_min)
+            s = app.config.settings
+            self._typing_delay.set_value(s.typing_delay_ms)
+            self._hold_delay.set_value(s.hold_delay_ms)
+            self._keyring_switch.set_active(s.use_keyring_cache)
+            self._keyring_timeout.set_value(s.keyring_timeout_min)
+        finally:
+            self._populating = False
 
     def _on_changed(self, *args: object) -> None:
+        if self._populating:
+            return
         app = Gtk.Application.get_default()
         if app is None:
             return

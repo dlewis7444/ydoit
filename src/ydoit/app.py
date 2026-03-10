@@ -49,7 +49,7 @@ class YdoitApp(Adw.Application):
             self._main_window.load_config(self._config)
             return
 
-        passphrase = self._km.retrieve_passphrase(timeout_min=15)
+        passphrase = self._km.retrieve_passphrase(timeout_min=0)
         if passphrase:
             self._do_load(passphrase)
         else:
@@ -75,7 +75,12 @@ class YdoitApp(Adw.Application):
         try:
             self._config = self._cm.load(passphrase)
             self._passphrase = passphrase
-            if self._config.settings.use_keyring_cache:
+            s = self._config.settings
+            if not s.use_keyring_cache:
+                self._km.clear_passphrase()
+            elif s.keyring_timeout_min > 0 and self._km.is_expired(s.keyring_timeout_min):
+                self._km.clear_passphrase()
+            else:
                 self._km.store_passphrase(passphrase)
             if not self._sm._check_gio():
                 self._gio_available = False

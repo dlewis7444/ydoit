@@ -108,7 +108,7 @@ class TestKeyringUnavailable:
         km = _fresh_km(monkeypatch)
         assert km._schema is None
         # _is_expired checks self._schema first
-        assert km._is_expired(15) is True
+        assert km.is_expired(15) is True
 
 
 # ---------------------------------------------------------------------------
@@ -296,7 +296,7 @@ class TestIsExpired:
             constants.KEYRING_TIMESTAMP_ATTRIBUTE: fresh_ts,
         }
         mock_secret.password_search_sync.return_value = [mock_item]
-        assert km._is_expired(15) is False
+        assert km.is_expired(15) is False
 
     def test_returns_true_for_old_timestamp(
         self, km: KeyringManager, mock_secret: mock.MagicMock  # noqa: F821
@@ -308,13 +308,13 @@ class TestIsExpired:
             constants.KEYRING_TIMESTAMP_ATTRIBUTE: old_ts,
         }
         mock_secret.password_search_sync.return_value = [mock_item]
-        assert km._is_expired(15) is True
+        assert km.is_expired(15) is True
 
     def test_returns_true_when_no_items_found(
         self, km: KeyringManager, mock_secret: mock.MagicMock  # noqa: F821
     ) -> None:
         mock_secret.password_search_sync.return_value = []
-        assert km._is_expired(15) is True
+        assert km.is_expired(15) is True
 
     def test_returns_true_when_stored_at_attribute_missing(
         self, km: KeyringManager, mock_secret: mock.MagicMock  # noqa: F821
@@ -325,13 +325,13 @@ class TestIsExpired:
             constants.KEYRING_ATTRIBUTE: constants.KEYRING_ATTRIBUTE_VALUE,
         }
         mock_secret.password_search_sync.return_value = [mock_item]
-        assert km._is_expired(15) is True
+        assert km.is_expired(15) is True
 
     def test_returns_true_on_exception(
         self, km: KeyringManager, mock_secret: mock.MagicMock  # noqa: F821
     ) -> None:
         mock_secret.password_search_sync.side_effect = Exception("search failed")
-        assert km._is_expired(15) is True
+        assert km.is_expired(15) is True
 
     def test_returns_false_just_before_timeout_boundary(
         self, km: KeyringManager, mock_secret: mock.MagicMock  # noqa: F821
@@ -345,7 +345,7 @@ class TestIsExpired:
             constants.KEYRING_TIMESTAMP_ATTRIBUTE: ts,
         }
         mock_secret.password_search_sync.return_value = [mock_item]
-        assert km._is_expired(15) is False
+        assert km.is_expired(15) is False
 
     def test_returns_true_just_past_timeout_boundary(
         self, km: KeyringManager, mock_secret: mock.MagicMock  # noqa: F821
@@ -359,7 +359,7 @@ class TestIsExpired:
             constants.KEYRING_TIMESTAMP_ATTRIBUTE: ts,
         }
         mock_secret.password_search_sync.return_value = [mock_item]
-        assert km._is_expired(15) is True
+        assert km.is_expired(15) is True
 
     def test_calls_service_get_sync_with_load_collections(
         self, km: KeyringManager, mock_secret: mock.MagicMock  # noqa: F821
@@ -374,7 +374,7 @@ class TestIsExpired:
         mock_secret.password_search_sync.return_value = [mock_item]
         # Reset call history from __init__
         mock_secret.Service.get_sync.reset_mock()
-        km._is_expired(15)
+        km.is_expired(15)
         mock_secret.Service.get_sync.assert_called_once_with(
             mock_secret.ServiceFlags.LOAD_COLLECTIONS, None
         )

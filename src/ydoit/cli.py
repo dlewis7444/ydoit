@@ -103,6 +103,23 @@ def _prompt_passphrase_gui(confirm: bool = False) -> str | None:
         return None
 
 
+def _enforce_keyring_policy(config: "Config") -> None:
+    """Clear keyring cache if settings say not to cache or the entry has expired."""
+    try:
+        from ydoit.keyring_manager import KeyringManager
+
+        km = KeyringManager()
+        if not km.is_available():
+            return
+        s = config.settings
+        if not s.use_keyring_cache:
+            km.clear_passphrase()
+        elif s.keyring_timeout_min > 0 and km.is_expired(s.keyring_timeout_min):
+            km.clear_passphrase()
+    except Exception:
+        pass
+
+
 def _get_gui_passphrase(confirm: bool = False) -> str:
     """Get passphrase via graphical dialog; raises RuntimeError if unavailable."""
     result = _prompt_passphrase_gui(confirm=confirm)
@@ -118,13 +135,13 @@ def _get_passphrase_provider(new_file: bool = False) -> Callable[[], str]:
     """Return a passphrase provider callback."""
 
     def provider() -> str:
-        # Try keyring first
+        # Try keyring first (ignore expiry here; enforced post-load in _enforce_keyring_policy)
         try:
             from ydoit.keyring_manager import KeyringManager
 
             km = KeyringManager()
             if km.is_available():
-                cached = km.retrieve_passphrase()
+                cached = km.retrieve_passphrase(timeout_min=0)
                 if cached:
                     return cached
         except Exception:
@@ -176,6 +193,7 @@ def _cmd_type(args: argparse.Namespace) -> int:
     """Handle 'ydoit type <trigger>'."""
     cm = ConfigManager(passphrase_provider=_get_passphrase_provider())
     config = cm.load()
+    _enforce_keyring_policy(config)
 
     try:
         entry = config.get_entry(args.trigger)
