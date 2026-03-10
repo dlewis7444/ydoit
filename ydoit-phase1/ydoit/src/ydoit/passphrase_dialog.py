@@ -36,6 +36,8 @@ class PassphraseDialog(Adw.AlertDialog):
         self.set_default_response("ok")
         self.set_close_response("cancel")
 
+        self._entry.connect("entry-activated", lambda _: self.emit("response", "ok"))
+
     @property
     def passphrase(self) -> str:
         """Return the text currently in the passphrase field."""
