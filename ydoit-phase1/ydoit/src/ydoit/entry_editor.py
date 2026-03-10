@@ -40,11 +40,11 @@ class EntryEditorPage(Adw.NavigationPage):
 
         # Identity group
         identity = Adw.PreferencesGroup(title="Identity")
-        self._name_row = Adw.EntryRow(title="Name")
         self._label_row = Adw.EntryRow(title="Label")
+        self._name_row = Adw.EntryRow(title="Trigger")
         self._category_row = Adw.EntryRow(title="Category")
-        identity.add(self._name_row)
         identity.add(self._label_row)
+        identity.add(self._name_row)
         identity.add(self._category_row)
         prefs.add(identity)
 
