@@ -31,8 +31,8 @@ DEFAULT_KEYRING_TIMEOUT_MIN = 15
 DEFAULT_CATEGORY = "general"
 
 # --- Validation ---
-ENTRY_NAME_PATTERN = r"^[a-zA-Z0-9_-]+$"
-MAX_ENTRY_NAME_LENGTH = 64
+ENTRY_TRIGGER_PATTERN = r"^[a-zA-Z0-9_-]+$"
+MAX_ENTRY_TRIGGER_LENGTH = 64
 
 # --- CLI exit codes ---
 EXIT_OK = 0
