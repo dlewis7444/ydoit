@@ -1047,6 +1047,7 @@ class TestGetPassphraseProvider:
         from ydoit.cli import _get_passphrase_provider
 
         monkeypatch.setattr("getpass.getpass", lambda prompt="": "my-passphrase")
+        monkeypatch.setattr("sys.stdin", MagicMock(isatty=lambda: True))
 
         # Make KeyringManager unavailable
         km = MagicMock()
@@ -1078,6 +1079,7 @@ class TestGetPassphraseProvider:
         km.store_passphrase.return_value = True
 
         monkeypatch.setattr("getpass.getpass", lambda prompt="": "fresh-pass")
+        monkeypatch.setattr("sys.stdin", MagicMock(isatty=lambda: True))
         monkeypatch.setattr("ydoit.keyring_manager.KeyringManager", lambda: km)
         provider = _get_passphrase_provider()
         result = provider()
@@ -1095,6 +1097,7 @@ class TestGetPassphraseProvider:
             return "new-pass"
 
         monkeypatch.setattr("getpass.getpass", mock_getpass)
+        monkeypatch.setattr("sys.stdin", MagicMock(isatty=lambda: True))
         km = MagicMock()
         km.is_available.return_value = False
         monkeypatch.setattr("ydoit.keyring_manager.KeyringManager", lambda: km)
@@ -1109,6 +1112,7 @@ class TestGetPassphraseProvider:
 
         responses = iter(["pass1", "different"])
         monkeypatch.setattr("getpass.getpass", lambda prompt="": next(responses))
+        monkeypatch.setattr("sys.stdin", MagicMock(isatty=lambda: True))
         km = MagicMock()
         km.is_available.return_value = False
         monkeypatch.setattr("ydoit.keyring_manager.KeyringManager", lambda: km)
@@ -1122,6 +1126,7 @@ class TestGetPassphraseProvider:
         from ydoit.cli import _get_passphrase_provider
 
         monkeypatch.setattr("getpass.getpass", lambda prompt="": "fallback-pass")
+        monkeypatch.setattr("sys.stdin", MagicMock(isatty=lambda: True))
         # Patching the class to raise on instantiation
         monkeypatch.setattr(
             "ydoit.keyring_manager.KeyringManager",

@@ -71,6 +71,49 @@ def _prompt_passphrase(confirm: bool = False) -> str:
     return passphrase
 
 
+def _prompt_passphrase_gui(confirm: bool = False) -> str | None:
+    """Prompt for passphrase via zenity dialog. Returns None if unavailable."""
+    import subprocess
+
+    try:
+        result = subprocess.run(
+            ["zenity", "--password", "--title=ydoit passphrase"],
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        if result.returncode != 0:
+            return None
+        passphrase = result.stdout.rstrip("\n")
+        if confirm:
+            result2 = subprocess.run(
+                ["zenity", "--password", "--title=ydoit passphrase (confirm)"],
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+            if result2.returncode != 0 or result2.stdout.rstrip("\n") != passphrase:
+                subprocess.run(
+                    ["zenity", "--error", "--text=Passphrases do not match"],
+                    check=False,
+                )
+                return None
+        return passphrase
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return None
+
+
+def _get_gui_passphrase(confirm: bool = False) -> str:
+    """Get passphrase via graphical dialog; raises RuntimeError if unavailable."""
+    result = _prompt_passphrase_gui(confirm=confirm)
+    if result is None:
+        raise RuntimeError(
+            "No terminal or graphical prompt available. "
+            "Run any ydoit command from a terminal first to cache the passphrase."
+        )
+    return result
+
+
 def _get_passphrase_provider(new_file: bool = False) -> Callable[[], str]:
     """Return a passphrase provider callback."""
 
@@ -87,7 +130,14 @@ def _get_passphrase_provider(new_file: bool = False) -> Callable[[], str]:
         except Exception:
             pass
 
-        passphrase = _prompt_passphrase(confirm=new_file)
+        # Try terminal prompt; fall back to GUI dialog if no TTY
+        if sys.stdin.isatty():
+            try:
+                passphrase: str = _prompt_passphrase(confirm=new_file)
+            except EOFError:
+                passphrase = _get_gui_passphrase(new_file)
+        else:
+            passphrase = _get_gui_passphrase(new_file)
 
         # Cache in keyring
         try:
