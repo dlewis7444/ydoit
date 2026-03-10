@@ -16,17 +16,17 @@ class EncryptionError(YdoitError):
 class EntryNotFoundError(YdoitError):
     """Requested entry does not exist in the config."""
 
-    def __init__(self, name: str) -> None:
-        self.name = name
-        super().__init__(f"Entry not found: {name!r}")
+    def __init__(self, trigger: str) -> None:
+        self.trigger = trigger
+        super().__init__(f"Entry not found: {trigger!r}")
 
 
 class DuplicateEntryError(YdoitError):
-    """An entry with this name already exists."""
+    """An entry with this trigger already exists."""
 
-    def __init__(self, name: str) -> None:
-        self.name = name
-        super().__init__(f"Entry already exists: {name!r}")
+    def __init__(self, trigger: str) -> None:
+        self.trigger = trigger
+        super().__init__(f"Entry already exists: {trigger!r}")
 
 
 class ShortcutConflictError(YdoitError):
@@ -51,12 +51,12 @@ class YdotoolError(YdoitError):
     """Error communicating with ydotool/ydotoold."""
 
 
-class InvalidEntryNameError(YdoitError):
-    """Entry name contains invalid characters."""
+class InvalidEntryTriggerError(YdoitError):
+    """Entry trigger contains invalid characters."""
 
-    def __init__(self, name: str, reason: str = "") -> None:
-        self.name = name
-        msg = f"Invalid entry name: {name!r}"
+    def __init__(self, trigger: str, reason: str = "") -> None:
+        self.trigger = trigger
+        msg = f"Invalid entry trigger: {trigger!r}"
         if reason:
             msg += f" ({reason})"
         super().__init__(msg)

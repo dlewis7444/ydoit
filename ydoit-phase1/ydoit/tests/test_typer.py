@@ -91,7 +91,7 @@ class TestTyper:
     def test_type_entry_string(
         self, typer: Typer, mock_daemon: MagicMock
     ) -> None:
-        entry = Entry(name="test", keycombo="Super+F1", string="secret")
+        entry = Entry(trigger="test", keycombo="Super+F1", string="secret")
         settings = Settings()
 
         with patch("ydoit.typer.subprocess.run") as mock_run:
@@ -107,7 +107,7 @@ class TestTyper:
         test_file = tmp_path / "script.sh"
         test_file.write_text("#!/bin/bash\necho hi", encoding="utf-8")
 
-        entry = Entry(name="test", keycombo="Super+F1", filename=str(test_file))
+        entry = Entry(trigger="test", keycombo="Super+F1", filename=str(test_file))
         settings = Settings()
 
         with patch("ydoit.typer.subprocess.run") as mock_run:
@@ -121,7 +121,7 @@ class TestTyper:
         self, typer: Typer, mock_daemon: MagicMock
     ) -> None:
         entry = Entry(
-            name="test",
+            trigger="test",
             keycombo="Super+F1",
             string="x",
             typing_delay_ms=50,
@@ -144,7 +144,7 @@ class TestTyper:
     ) -> None:
         """Per-entry overrides don't permanently change the typer."""
         entry = Entry(
-            name="test", keycombo="Super+F1", string="x", typing_delay_ms=99
+            trigger="test", keycombo="Super+F1", string="x", typing_delay_ms=99
         )
         settings = Settings()
 

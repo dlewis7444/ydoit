@@ -23,13 +23,13 @@ def make_entry(
     keycombo: str = "Super+F11",
     label: str = "Home Password",
 ) -> Entry:
-    return Entry(name=name, keycombo=keycombo, label=label)
+    return Entry(trigger=name, keycombo=keycombo, label=label)
 
 
 def make_config(*entries: Entry) -> Config:
     cfg = Config()
     for e in entries:
-        cfg.entries[e.name] = e
+        cfg.entries[e.trigger] = e
     return cfg
 
 
@@ -125,14 +125,14 @@ class TestGnomeShortcut:
             path="/custom0/", name="ydoit: Home Password",
             command="ydoit type home1", binding="<Super>F11"
         )
-        assert s.entry_name == "home1"
+        assert s.entry_trigger == "home1"
 
     def test_entry_name_non_ydoit(self) -> None:
         s = GnomeShortcut(
             path="/custom0/", name="Other",
             command="other cmd", binding="<Super>F11"
         )
-        assert s.entry_name is None
+        assert s.entry_trigger is None
 
 
 class TestFormatConversion:
@@ -1058,7 +1058,7 @@ class TestSync:
         self._setup(gio, [])
         gio.SettingsSchemaSource.get_default.return_value = None
 
-        config = make_config(Entry(name="nokey", keycombo="", string="hello"))
+        config = make_config(Entry(trigger="nokey", keycombo="", string="hello"))
         result = mgr.sync(config)
 
         assert not result.errors

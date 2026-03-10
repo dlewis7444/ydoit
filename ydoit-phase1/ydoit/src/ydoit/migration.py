@@ -95,7 +95,7 @@ def migrate_v1_to_v2(data: dict[str, Any]) -> dict[str, Any]:
     all_typing_delays: list[int] = []
     all_hold_delays: list[int] = []
 
-    for name, v1_entry in data.items():
+    for trigger, v1_entry in data.items():
         if not isinstance(v1_entry, dict):
             continue
 
@@ -114,11 +114,11 @@ def migrate_v1_to_v2(data: dict[str, Any]) -> dict[str, Any]:
         else:
             category = constants.DEFAULT_CATEGORY
 
-        entries[name] = {
+        entries[trigger] = {
             "keycombo": v1_entry.get("keycombo", ""),
             "string": string,
             "filename": filename,
-            "label": name,
+            "label": trigger,
             "category": category,
             "notes": f"Migrated from v1. Original options: {options}" if options else "",
             "typing_delay_ms": typing_delay,
