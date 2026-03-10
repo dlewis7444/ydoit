@@ -46,10 +46,10 @@ class TestFullLifecycle:
         # Create config and add entries
         config = cm.load()  # returns empty Config
         config.add_entry(
-            Entry(name="pass1", keycombo="Super+F1", string="secret123")
+            Entry(trigger="pass1", keycombo="Super+F1", string="secret123")
         )
         config.add_entry(
-            Entry(name="script1", keycombo="Super+F2", filename="/usr/bin/env")
+            Entry(trigger="script1", keycombo="Super+F2", filename="/usr/bin/env")
         )
 
         cm.save(config, PASSPHRASE)
@@ -64,7 +64,7 @@ class TestFullLifecycle:
     def test_modify_and_remove(self, cm: ConfigManager) -> None:
         """Modify an entry's keycombo, then remove it."""
         config = Config()
-        config.add_entry(Entry(name="test", keycombo="Super+F5", string="hello"))
+        config.add_entry(Entry(trigger="test", keycombo="Super+F5", string="hello"))
         cm.save(config, PASSPHRASE)
 
         # Modify
@@ -137,10 +137,10 @@ class TestExportImport:
         # Create and save
         config = Config()
         config.add_entry(
-            Entry(name="entry1", keycombo="Super+F1", string="secret1")
+            Entry(trigger="entry1", keycombo="Super+F1", string="secret1")
         )
         config.add_entry(
-            Entry(name="entry2", keycombo="Super+F2", filename="/tmp/file")
+            Entry(trigger="entry2", keycombo="Super+F2", filename="/tmp/file")
         )
         cm.save(config, PASSPHRASE)
 
@@ -178,7 +178,7 @@ class TestErrorRecovery:
     def test_passphrase_change(self, cm: ConfigManager) -> None:
         """Re-encrypt with a new passphrase."""
         config = Config()
-        config.add_entry(Entry(name="test", keycombo="Super+F1", string="data"))
+        config.add_entry(Entry(trigger="test", keycombo="Super+F1", string="data"))
         cm.save(config, PASSPHRASE)
 
         # Load with old passphrase

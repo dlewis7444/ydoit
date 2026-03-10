@@ -31,21 +31,21 @@ def sample_config() -> Config:
     config = Config()
     config.entries = {
         "home1": Entry(
-            name="home1",
+            trigger="home1",
             keycombo="Super+F11",
             string="supersecretpassword!\n",
             label="Home Password",
             category="passwords",
         ),
         "setnet": Entry(
-            name="setnet",
+            trigger="setnet",
             keycombo="Super+F8",
             filename="/home/user/subdir/setnet.sh",
             label="Network Setup Script",
             category="scripts",
         ),
         "tmpfile": Entry(
-            name="tmpfile",
+            trigger="tmpfile",
             keycombo="Super+F9",
             filename="/tmp/ydoitmpfile",
             label="Temp File Typer",
@@ -61,7 +61,7 @@ def single_entry_config() -> Config:
     config = Config()
     config.entries = {
         "mypass": Entry(
-            name="mypass",
+            trigger="mypass",
             keycombo="Super+F1",
             string="s3cr3t",
             label="My Password",
@@ -112,7 +112,7 @@ class TestBuildParser:
         parser = build_parser()
         args = parser.parse_args(["type", "home1"])
         assert args.command == "type"
-        assert args.name == "home1"
+        assert args.trigger == "home1"
 
     def test_list_subcommand(self) -> None:
         parser = build_parser()
@@ -129,7 +129,7 @@ class TestBuildParser:
             "--category", "passwords",
         ])
         assert args.command == "add"
-        assert args.name == "myentry"
+        assert args.trigger == "myentry"
         assert args.keycombo == "Super+F5"
         assert args.string == "hello"
         assert args.label == "My Entry"
@@ -149,7 +149,7 @@ class TestBuildParser:
         parser = build_parser()
         args = parser.parse_args(["remove", "myentry", "--yes"])
         assert args.command == "remove"
-        assert args.name == "myentry"
+        assert args.trigger == "myentry"
         assert args.yes is True
 
     def test_remove_no_yes_default(self) -> None:

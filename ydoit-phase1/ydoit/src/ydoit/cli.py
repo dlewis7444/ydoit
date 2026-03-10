@@ -19,7 +19,7 @@ from ydoit.exceptions import (
     EntryNotFoundError,
     GioNotAvailableError,
     GpgNotFoundError,
-    InvalidEntryNameError,
+    InvalidEntryTriggerError,
     YdoitError,
     YdotoolError,
 )
@@ -123,12 +123,12 @@ def _error(msg: str) -> None:
 
 
 def _cmd_type(args: argparse.Namespace) -> int:
-    """Handle 'ydoit type <n>'."""
+    """Handle 'ydoit type <trigger>'."""
     cm = ConfigManager(passphrase_provider=_get_passphrase_provider())
     config = cm.load()
 
     try:
-        entry = config.get_entry(args.name)
+        entry = config.get_entry(args.trigger)
     except EntryNotFoundError as e:
         _error(str(e))
         return constants.EXIT_ENTRY_NOT_FOUND
@@ -162,16 +162,16 @@ def _cmd_list(args: argparse.Namespace) -> int:
         return constants.EXIT_OK
 
     # Calculate column widths
-    name_w = max(len(e.name) for e in config.entries.values())
+    trigger_w = max(len(e.trigger) for e in config.entries.values())
     label_w = max(len(e.display_label) for e in config.entries.values())
     key_w = max(len(e.keycombo) for e in config.entries.values())
-    name_w = max(name_w, 4)
+    trigger_w = max(trigger_w, 7)
     label_w = max(label_w, 5)
     key_w = max(key_w, 8)
 
     # Header
     header = (
-        f"{'Name':<{name_w}}  {'Label':<{label_w}}  "
+        f"{'Trigger':<{trigger_w}}  {'Label':<{label_w}}  "
         f"{'Shortcut':<{key_w}}  Type"
     )
     print(f"{C.BOLD}{header}{C.RESET}")
@@ -184,13 +184,13 @@ def _cmd_list(args: argparse.Namespace) -> int:
         categories.setdefault(cat, []).append(entry)
 
     for cat_name in sorted(categories):
-        entries = sorted(categories[cat_name], key=lambda e: e.name)
+        entries = sorted(categories[cat_name], key=lambda e: e.trigger)
         if len(categories) > 1:
             print(f"\n{C.DIM}[{cat_name}]{C.RESET}")
         for entry in entries:
             type_str = "file" if entry.filename else "string"
             print(
-                f"  {entry.name:<{name_w}}  {entry.display_label:<{label_w}}  "
+                f"  {entry.trigger:<{trigger_w}}  {entry.display_label:<{label_w}}  "
                 f"{entry.keycombo:<{key_w}}  {type_str}"
             )
 
@@ -199,11 +199,11 @@ def _cmd_list(args: argparse.Namespace) -> int:
 
 
 def _cmd_add(args: argparse.Namespace) -> int:
-    """Handle 'ydoit add <n>'."""
-    # Validate entry name
+    """Handle 'ydoit add <trigger>'."""
+    # Validate entry trigger
     try:
-        Entry.validate_name(args.name)
-    except InvalidEntryNameError as e:
+        Entry.validate_trigger(args.trigger)
+    except InvalidEntryTriggerError as e:
         _error(str(e))
         return constants.EXIT_ERROR
 
@@ -213,8 +213,8 @@ def _cmd_add(args: argparse.Namespace) -> int:
     config = cm.load()
 
     # Check for duplicate
-    if args.name in config.entries:
-        _error(f"Entry {args.name!r} already exists. Use 'ydoit edit' to modify it.")
+    if args.trigger in config.entries:
+        _error(f"Entry {args.trigger!r} already exists. Use 'ydoit edit' to modify it.")
         return constants.EXIT_ERROR
 
     # Check for shortcut conflict — must happen before saving
@@ -233,11 +233,11 @@ def _cmd_add(args: argparse.Namespace) -> int:
             )
 
     entry = Entry(
-        name=args.name,
+        trigger=args.trigger,
         keycombo=args.keycombo or "",
         string=args.string or "",
         filename=args.filename or "",
-        label=args.label or args.name,
+        label=args.label or args.trigger,
         category=args.category or constants.DEFAULT_CATEGORY,
     )
 
@@ -251,17 +251,17 @@ def _cmd_add(args: argparse.Namespace) -> int:
         sm.register_shortcut(entry)
         _info(f"Registered shortcut {entry.keycombo}")
 
-    _info(f"Added entry {args.name!r}")
+    _info(f"Added entry {args.trigger!r}")
     return constants.EXIT_OK
 
 
 def _cmd_remove(args: argparse.Namespace) -> int:
-    """Handle 'ydoit remove <n>'."""
+    """Handle 'ydoit remove <trigger>'."""
     cm = ConfigManager(passphrase_provider=_get_passphrase_provider())
     config = cm.load()
 
     try:
-        entry = config.get_entry(args.name)
+        entry = config.get_entry(args.trigger)
     except EntryNotFoundError as e:
         _error(str(e))
         return constants.EXIT_ENTRY_NOT_FOUND
@@ -269,22 +269,22 @@ def _cmd_remove(args: argparse.Namespace) -> int:
     # Confirm unless --yes
     if not args.yes:
         response = input(
-            f"Remove entry {args.name!r} ({entry.display_label})? [y/N] "
+            f"Remove entry {args.trigger!r} ({entry.display_label})? [y/N] "
         )
         if response.lower() not in ("y", "yes"):
             print("Cancelled")
             return constants.EXIT_OK
 
-    config.remove_entry(args.name)
+    config.remove_entry(args.trigger)
 
     passphrase = _get_passphrase_provider()()
     cm.save(config, passphrase)
 
     # Remove shortcut
     sm = ShortcutManager()
-    sm.unregister_shortcut(args.name)
+    sm.unregister_shortcut(args.trigger)
 
-    _info(f"Removed entry {args.name!r}")
+    _info(f"Removed entry {args.trigger!r}")
     return constants.EXIT_OK
 
 
@@ -371,8 +371,8 @@ def _cmd_import(args: argparse.Namespace) -> int:
     if cm.exists():
         existing = cm.load()
         # Merge: imported entries override existing
-        for name, entry in import_config.entries.items():
-            existing.entries[name] = entry
+        for trigger, entry in import_config.entries.items():
+            existing.entries[trigger] = entry
         config = existing
         _info(f"Merged {len(import_config.entries)} entries into existing config")
     else:
@@ -464,14 +464,14 @@ def build_parser() -> argparse.ArgumentParser:
 
     # type
     type_p = subparsers.add_parser("type", help="Type an entry's content")
-    type_p.add_argument("name", help="Entry name to type")
+    type_p.add_argument("trigger", help="Entry trigger to type")
 
     # list
     subparsers.add_parser("list", help="List all entries")
 
     # add
     add_p = subparsers.add_parser("add", help="Add a new entry")
-    add_p.add_argument("name", help="Entry name (letters, digits, underscores, hyphens)")
+    add_p.add_argument("trigger", help="Entry trigger (letters, digits, underscores, hyphens)")
     add_p.add_argument("--keycombo", "-k", required=True, help="Key combo (e.g. Super+F11)")
     add_p.add_argument("--string", "-s", default="", help="String to type")
     add_p.add_argument("--file", "-f", default="", dest="filename", help="File to type contents of")
@@ -479,7 +479,7 @@ def build_parser() -> argparse.ArgumentParser:
     add_p.add_argument("--category", "-c", default="", help="Category for grouping")
     # remove
     remove_p = subparsers.add_parser("remove", help="Remove an entry")
-    remove_p.add_argument("name", help="Entry name to remove")
+    remove_p.add_argument("trigger", help="Entry trigger to remove")
     remove_p.add_argument("--yes", "-y", action="store_true", help="Skip confirmation")
 
     # sync-shortcuts

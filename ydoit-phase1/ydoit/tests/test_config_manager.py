@@ -123,7 +123,7 @@ class TestConfigManager:
     ) -> None:
         config = Config()
         config.add_entry(
-            Entry(name="unicode_test", keycombo="Super+F1", string="héllo wörld 日本語")
+            Entry(trigger="unicode_test", keycombo="Super+F1", string="héllo wörld 日本語")
         )
         cm.save(config, sample_passphrase)
         loaded = cm.load(sample_passphrase)

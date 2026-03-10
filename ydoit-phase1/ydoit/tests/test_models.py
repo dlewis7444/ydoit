@@ -9,7 +9,7 @@ import pytest
 from ydoit.exceptions import (
     DuplicateEntryError,
     EntryNotFoundError,
-    InvalidEntryNameError,
+    InvalidEntryTriggerError,
 )
 from ydoit.models import Config, Entry, EntryType, Settings
 
@@ -18,57 +18,57 @@ class TestEntry:
     """Tests for the Entry dataclass."""
 
     def test_string_entry_type(self) -> None:
-        entry = Entry(name="test", keycombo="Super+F1", string="hello")
+        entry = Entry(trigger="test", keycombo="Super+F1", string="hello")
         assert entry.entry_type == EntryType.STRING
 
     def test_file_entry_type(self) -> None:
-        entry = Entry(name="test", keycombo="Super+F1", filename="/tmp/file.txt")
+        entry = Entry(trigger="test", keycombo="Super+F1", filename="/tmp/file.txt")
         assert entry.entry_type == EntryType.FILE
 
     def test_file_takes_precedence(self) -> None:
         """If both string and filename are set, filename wins."""
         entry = Entry(
-            name="test", keycombo="Super+F1", string="hello", filename="/tmp/f"
+            trigger="test", keycombo="Super+F1", string="hello", filename="/tmp/f"
         )
         assert entry.entry_type == EntryType.FILE
 
     def test_display_label_with_label(self) -> None:
-        entry = Entry(name="test", keycombo="Super+F1", label="My Label")
+        entry = Entry(trigger="test", keycombo="Super+F1", label="My Label")
         assert entry.display_label == "My Label"
 
     def test_display_label_fallback_to_name(self) -> None:
-        entry = Entry(name="test", keycombo="Super+F1")
+        entry = Entry(trigger="test", keycombo="Super+F1")
         assert entry.display_label == "test"
 
-    def test_validate_name_valid(self) -> None:
+    def test_validate_trigger_valid(self) -> None:
         for name in ["test", "my_entry", "entry-1", "ABC123", "a"]:
-            Entry.validate_name(name)  # Should not raise
+            Entry.validate_trigger(name)  # Should not raise
 
-    def test_validate_name_empty(self) -> None:
-        with pytest.raises(InvalidEntryNameError, match="empty"):
-            Entry.validate_name("")
+    def test_validate_trigger_empty(self) -> None:
+        with pytest.raises(InvalidEntryTriggerError, match="empty"):
+            Entry.validate_trigger("")
 
-    def test_validate_name_too_long(self) -> None:
-        with pytest.raises(InvalidEntryNameError, match="exceeds"):
-            Entry.validate_name("x" * 100)
+    def test_validate_trigger_too_long(self) -> None:
+        with pytest.raises(InvalidEntryTriggerError, match="exceeds"):
+            Entry.validate_trigger("x" * 100)
 
-    def test_validate_name_invalid_chars(self) -> None:
+    def test_validate_trigger_invalid_chars(self) -> None:
         for name in ["has space", "has.dot", "has/slash", "has@at", "café"]:
-            with pytest.raises(InvalidEntryNameError, match="must contain only"):
-                Entry.validate_name(name)
+            with pytest.raises(InvalidEntryTriggerError, match="must contain only"):
+                Entry.validate_trigger(name)
 
     def test_to_dict_minimal(self) -> None:
-        entry = Entry(name="test", keycombo="Super+F1")
+        entry = Entry(trigger="test", keycombo="Super+F1")
         d = entry.to_dict()
         assert d["keycombo"] == "Super+F1"
         assert d["string"] == ""
         assert d["filename"] == ""
         assert "typing_delay_ms" not in d  # None values excluded
-        assert "name" not in d  # name is the dict key, not a value
+        assert "trigger" not in d  # trigger is the dict key, not a value
 
     def test_to_dict_with_overrides(self) -> None:
         entry = Entry(
-            name="test",
+            trigger="test",
             keycombo="Ctrl+Alt+P",
             string="secret",
             typing_delay_ms=10,
@@ -80,7 +80,7 @@ class TestEntry:
 
     def test_from_dict_round_trip(self) -> None:
         original = Entry(
-            name="test",
+            trigger="test",
             keycombo="Super+F11",
             string="hello\nworld",
             label="Test Entry",
@@ -90,7 +90,7 @@ class TestEntry:
         )
         d = original.to_dict()
         restored = Entry.from_dict("test", d)
-        assert restored.name == original.name
+        assert restored.trigger == original.trigger
         assert restored.keycombo == original.keycombo
         assert restored.string == original.string
         assert restored.label == original.label
@@ -110,7 +110,7 @@ class TestEntry:
     def test_special_characters_in_string(self) -> None:
         """Strings with newlines, tabs, unicode survive round-trip."""
         text = "line1\nline2\ttab\u00e9\u00e8\\"
-        entry = Entry(name="test", keycombo="Super+F1", string=text)
+        entry = Entry(trigger="test", keycombo="Super+F1", string=text)
         d = entry.to_dict()
         restored = Entry.from_dict("test", d)
         assert restored.string == text
@@ -157,22 +157,22 @@ class TestConfig:
 
     def test_add_entry(self) -> None:
         config = Config()
-        entry = Entry(name="test", keycombo="Super+F1", string="hello")
+        entry = Entry(trigger="test", keycombo="Super+F1", string="hello")
         config.add_entry(entry)
         assert "test" in config.entries
         assert config.entries["test"] is entry
 
     def test_add_duplicate_raises(self) -> None:
         config = Config()
-        config.add_entry(Entry(name="test", keycombo="Super+F1"))
+        config.add_entry(Entry(trigger="test", keycombo="Super+F1"))
         with pytest.raises(DuplicateEntryError, match="test"):
-            config.add_entry(Entry(name="test", keycombo="Super+F2"))
+            config.add_entry(Entry(trigger="test", keycombo="Super+F2"))
 
     def test_remove_entry(self) -> None:
         config = Config()
-        config.add_entry(Entry(name="test", keycombo="Super+F1"))
+        config.add_entry(Entry(trigger="test", keycombo="Super+F1"))
         removed = config.remove_entry("test")
-        assert removed.name == "test"
+        assert removed.trigger == "test"
         assert "test" not in config.entries
 
     def test_remove_nonexistent_raises(self) -> None:
@@ -182,8 +182,8 @@ class TestConfig:
 
     def test_get_entry(self) -> None:
         config = Config()
-        config.add_entry(Entry(name="test", keycombo="Super+F1"))
-        assert config.get_entry("test").name == "test"
+        config.add_entry(Entry(trigger="test", keycombo="Super+F1"))
+        assert config.get_entry("test").trigger == "test"
 
     def test_get_nonexistent_raises(self) -> None:
         config = Config()
@@ -222,7 +222,7 @@ class TestConfig:
         config = Config()
         for i in range(150):
             config.add_entry(
-                Entry(name=f"entry_{i}", keycombo=f"Super+F{i}", string=f"text_{i}")
+                Entry(trigger=f"entry_{i}", keycombo=f"Super+F{i}", string=f"text_{i}")
             )
         restored = Config.from_json(config.to_json())
         assert len(restored.entries) == 150

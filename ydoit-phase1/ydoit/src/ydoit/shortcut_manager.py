@@ -28,11 +28,11 @@ class GnomeShortcut:
         return self.name.startswith(constants.YDOIT_SHORTCUT_PREFIX)
 
     @property
-    def entry_name(self) -> str | None:
-        """Extract the ydoit entry name from the command, if this is a ydoit shortcut."""
+    def entry_trigger(self) -> str | None:
+        """Extract the ydoit entry trigger from the command, if this is a ydoit shortcut."""
         if not self.is_ydoit:
             return None
-        # command is "ydoit type <name>"
+        # command is "ydoit type <trigger>"
         parts = self.command.split()
         if len(parts) >= 3 and parts[0] == "ydoit" and parts[1] == "type":
             return parts[2]
@@ -179,12 +179,12 @@ class ShortcutManager:
                 if (
                     exclude_entry
                     and shortcut.is_ydoit
-                    and shortcut.entry_name == exclude_entry
+                    and shortcut.entry_trigger == exclude_entry
                 ):
                     continue
 
                 source = "ydoit" if shortcut.is_ydoit else "custom"
-                name = shortcut.entry_name or shortcut.name
+                name = shortcut.entry_trigger or shortcut.name
                 return ConflictInfo(
                     keycombo=keycombo,
                     existing_name=name,
@@ -263,47 +263,47 @@ class ShortcutManager:
         self._require_gio()
 
         result = SyncResult()
-        current = {s.entry_name: s for s in self.get_ydoit_shortcuts() if s.entry_name}
+        current = {s.entry_trigger: s for s in self.get_ydoit_shortcuts() if s.entry_trigger}
         desired = config.entries
 
         # Pre-flight: check all keyed entries for conflicts before any mutations
-        for entry_name, entry in desired.items():
+        for entry_trigger, entry in desired.items():
             if not entry.keycombo:
                 continue
-            conflict = self.find_conflict(entry.keycombo, exclude_entry=entry_name)
+            conflict = self.find_conflict(entry.keycombo, exclude_entry=entry_trigger)
             if conflict:
                 result.errors.append(
-                    f"Shortcut {entry.keycombo!r} for {entry_name!r} conflicts with "
+                    f"Shortcut {entry.keycombo!r} for {entry_trigger!r} conflicts with "
                     f"{conflict.existing_source} shortcut {conflict.existing_name!r}"
                 )
         if result.errors:
             return result
 
         # Remove stale shortcuts
-        for entry_name in set(current) - set(desired):
+        for entry_trigger in set(current) - set(desired):
             try:
-                self._remove_shortcut_path(current[entry_name].path)
+                self._remove_shortcut_path(current[entry_trigger].path)
                 result.removed += 1
             except Exception as e:
-                result.errors.append(f"Failed to remove {entry_name}: {e}")
+                result.errors.append(f"Failed to remove {entry_trigger}: {e}")
 
         # Add new shortcuts
-        for entry_name in set(desired) - set(current):
-            entry = desired[entry_name]
+        for entry_trigger in set(desired) - set(current):
+            entry = desired[entry_trigger]
             if not entry.keycombo:
                 continue
             try:
                 self._register_new_shortcut(entry)
                 result.added += 1
             except Exception as e:
-                result.errors.append(f"Failed to add {entry_name}: {e}")
+                result.errors.append(f"Failed to add {entry_trigger}: {e}")
 
         # Update changed shortcuts
-        for entry_name in set(desired) & set(current):
-            entry = desired[entry_name]
-            existing = current[entry_name]
+        for entry_trigger in set(desired) & set(current):
+            entry = desired[entry_trigger]
+            existing = current[entry_trigger]
             expected_binding = self.to_gnome_binding(entry.keycombo) if entry.keycombo else ""
-            expected_command = self.make_command(entry.name)
+            expected_command = self.make_command(entry.trigger)
             expected_name = f"{constants.YDOIT_SHORTCUT_PREFIX}{entry.display_label}"
 
             if (
@@ -318,7 +318,7 @@ class ShortcutManager:
                     kb_settings.set_string("binding", expected_binding)
                     result.updated += 1
                 except Exception as e:
-                    result.errors.append(f"Failed to update {entry_name}: {e}")
+                    result.errors.append(f"Failed to update {entry_trigger}: {e}")
 
         return result
 
@@ -335,29 +335,29 @@ class ShortcutManager:
 
         # Check if already registered
         for shortcut in self.get_ydoit_shortcuts():
-            if shortcut.entry_name == entry.name:
+            if shortcut.entry_trigger == entry.trigger:
                 # Update existing
                 kb_settings = self._get_keybinding_settings(shortcut.path)
                 kb_settings.set_string(
                     "name", f"{constants.YDOIT_SHORTCUT_PREFIX}{entry.display_label}"
                 )
-                kb_settings.set_string("command", self.make_command(entry.name))
+                kb_settings.set_string("command", self.make_command(entry.trigger))
                 kb_settings.set_string("binding", self.to_gnome_binding(entry.keycombo))
                 return
 
         # Register new
         self._register_new_shortcut(entry)
 
-    def unregister_shortcut(self, entry_name: str) -> None:
+    def unregister_shortcut(self, entry_trigger: str) -> None:
         """Remove the GNOME shortcut for a named entry.
 
         Args:
-            entry_name: The entry name whose shortcut to remove.
+            entry_trigger: The entry trigger whose shortcut to remove.
         """
         self._require_gio()
 
         for shortcut in self.get_ydoit_shortcuts():
-            if shortcut.entry_name == entry_name:
+            if shortcut.entry_trigger == entry_trigger:
                 self._remove_shortcut_path(shortcut.path)
                 return
 
@@ -398,7 +398,7 @@ class ShortcutManager:
         kb_settings.set_string(
             "name", f"{constants.YDOIT_SHORTCUT_PREFIX}{entry.display_label}"
         )
-        kb_settings.set_string("command", self.make_command(entry.name))
+        kb_settings.set_string("command", self.make_command(entry.trigger))
         kb_settings.set_string("binding", self.to_gnome_binding(entry.keycombo))
 
         # Add to the master list
@@ -508,13 +508,13 @@ class ShortcutManager:
         return "+".join(parts)
 
     @staticmethod
-    def make_command(entry_name: str) -> str:
+    def make_command(entry_trigger: str) -> str:
         """Build the shell command for a shortcut.
 
         Args:
-            entry_name: Entry name.
+            entry_trigger: Entry trigger.
 
         Returns:
             Command string like "ydoit type home1".
         """
-        return f"ydoit type {entry_name}"
+        return f"ydoit type {entry_trigger}"

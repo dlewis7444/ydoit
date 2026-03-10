@@ -47,21 +47,21 @@ def sample_config() -> Config:
     config = Config()
     config.entries = {
         "home1": Entry(
-            name="home1",
+            trigger="home1",
             keycombo="Super+F11",
             string="supersecretpassword!\n",
             label="Home Password",
             category="passwords",
         ),
         "setnet": Entry(
-            name="setnet",
+            trigger="setnet",
             keycombo="Super+F8",
             filename="/home/user/subdir/setnet.sh",
             label="Network Setup Script",
             category="scripts",
         ),
         "tmpfile": Entry(
-            name="tmpfile",
+            trigger="tmpfile",
             keycombo="Super+F9",
             filename="/tmp/ydoitmpfile",
             label="Temp File Typer",
