@@ -1,5 +1,5 @@
 [Desktop Entry]
-Name=ydoit
+Name=ydoit Manager
 Comment=Keyboard shortcut auto-typer for GNOME/Wayland
 Exec=ydoit-gui
 Icon=org.ydoit.app
