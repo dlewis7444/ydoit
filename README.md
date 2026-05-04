@@ -9,28 +9,23 @@ Very useful for pasting into systems that can't be pasted into.  (iLOs, some VMs
 
 ## Quick Start
 
-### Fedora
+Grab the latest release from https://github.com/dlewis7444/ydoit/releases/latest.
+
+### Fedora 43+
 
 ```bash
-sudo dnf install gnupg2 ydotool python3-gobject gtk4 libadwaita
+sudo dnf install ./ydoit-*.noarch.rpm
 systemctl --user enable --now ydotoold
-git clone https://github.com/dlewis7444/ydoit
-cd ydoit
-./scripts/build-rpm.sh
 ```
 
-### Ubuntu / Debian
+### Debian 13 / Ubuntu 24.04+
 
 ```bash
-sudo apt install gnupg ydotool python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 libsecret-1-0 meson
+sudo apt install ./ydoit_*_all.deb
 systemctl --user enable --now ydotoold
-git clone https://github.com/dlewis7444/ydoit
-cd ydoit
-meson setup --prefix=/usr/local builddir
-sudo meson install -C builddir
 ```
 
-After install: launch **ydoit Manager** from the application grid, or run `ydoit` / `ydoit-gui` from a terminal.
+Then launch **ydoit Manager** from the application grid, or run `ydoit` / `ydoit-gui` from a terminal.
 
 ## CLI Usage
 
@@ -45,6 +40,19 @@ ydoit export backup.json --plain          # Export unencrypted
 ydoit import backup.json                  # Import entries
 ydoit remove mypass                       # Remove an entry
 ```
+
+## Building from source
+
+Helper scripts produce RPM and DEB artifacts from `git HEAD`:
+
+```bash
+git clone https://github.com/dlewis7444/ydoit
+cd ydoit
+./scripts/build-rpm.sh   # Fedora — builds, then sudo dnf installs
+./scripts/build-deb.sh   # Any Linux with podman — builds in a debian:13 container
+```
+
+Outputs land in `~/rpmbuild/RPMS/noarch/` and `dist/` respectively.
 
 ## Development
 
