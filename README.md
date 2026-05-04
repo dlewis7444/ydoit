@@ -50,4 +50,4 @@ ydoit remove mypass                       # Remove an entry
 
 ## License
 
-GPL-3.0-or-later
+MIT
