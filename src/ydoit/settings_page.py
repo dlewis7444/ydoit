@@ -8,6 +8,8 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 from gi.repository import Adw, GObject, Gtk
 
+from ydoit import __version__
+
 
 class SettingsPage(Adw.NavigationPage):
     """Global settings form."""
@@ -53,6 +55,13 @@ class SettingsPage(Adw.NavigationPage):
         security.add(self._keyring_timeout)
         security.add(change_pass_row)
         prefs.add(security)
+
+        # About
+        about = Adw.PreferencesGroup(title="About")
+        version_row = Adw.ActionRow(title="Version")
+        version_row.set_subtitle(__version__)
+        about.add(version_row)
+        prefs.add(about)
 
         toolbar_view = Adw.ToolbarView()
         toolbar_view.add_top_bar(header)
