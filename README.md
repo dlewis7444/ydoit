@@ -4,6 +4,9 @@ Keyboard shortcut auto-typer for GNOME/Wayland.
 
 Map keyboard shortcuts to auto-type actions — type out strings, passwords, or file contents on demand. Uses `ydotool` for Wayland-native input simulation and GPG symmetric encryption (AES-256) for secure config storage.
 
+Very useful for pasting into systems that can't be pasted into.  (iLOs, some VMs, etc.)
+
+
 ## Quick Start (Development)
 
 ```bash
