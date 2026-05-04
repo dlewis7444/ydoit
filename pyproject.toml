@@ -44,9 +44,9 @@ ydoit = "ydoit.cli:main"
 ydoit-gui = "ydoit.app:main"
 
 [project.urls]
-Homepage = "https://github.com/ydoit/ydoit"
-Repository = "https://github.com/ydoit/ydoit"
-Issues = "https://github.com/ydoit/ydoit/issues"
+Homepage = "https://github.com/dlewis7444/ydoit"
+Repository = "https://github.com/dlewis7444/ydoit"
+Issues = "https://github.com/dlewis7444/ydoit/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]
