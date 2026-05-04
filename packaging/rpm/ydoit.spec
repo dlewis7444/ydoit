@@ -3,7 +3,7 @@ Version:        2.0.0
 Release:        1%{?dist}
 Summary:        Keyboard shortcut auto-typer for GNOME/Wayland
 
-License:        GPL-3.0-or-later
+License:        MIT
 URL:            https://github.com/dlewis7444/ydoit
 Source0:        %{name}-%{version}.tar.gz
 BuildArch:      noarch

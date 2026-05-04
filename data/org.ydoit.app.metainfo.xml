@@ -2,7 +2,7 @@
 <component type="desktop-application">
   <id>org.ydoit.app</id>
   <metadata_license>CC0-1.0</metadata_license>
-  <project_license>GPL-3.0-or-later</project_license>
+  <project_license>MIT</project_license>
   <name>ydoit</name>
   <summary>Keyboard shortcut auto-typer for GNOME/Wayland</summary>
 
