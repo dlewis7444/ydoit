@@ -10,6 +10,8 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 from gi.repository import Adw, Gtk
 
+from ydoit import __version__
+
 if TYPE_CHECKING:
     from ydoit.models import Config
 
@@ -97,10 +99,20 @@ class MainWindow(Adw.ApplicationWindow):
 
         separator = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
 
+        version_label = Gtk.Label(
+            label=f"v{__version__}",
+            halign=Gtk.Align.END,
+            margin_end=12,
+            margin_bottom=4,
+        )
+        version_label.add_css_class("dim-label")
+        version_label.add_css_class("caption")
+
         main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         main_box.append(scroll)
         main_box.append(separator)
         main_box.append(footer_box)
+        main_box.append(version_label)
 
         toolbar_view = Adw.ToolbarView()
         toolbar_view.add_top_bar(header)

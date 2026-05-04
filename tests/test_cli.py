@@ -210,11 +210,13 @@ class TestMainEntryPoint:
         assert result == constants.EXIT_OK
 
     def test_version_subcommand(self, capsys: pytest.CaptureFixture) -> None:
+        from ydoit import __version__
+
         result = main(["version"])
         assert result == constants.EXIT_OK
         captured = capsys.readouterr()
         assert "ydoit" in captured.out
-        assert "2.0.0" in captured.out
+        assert __version__ in captured.out
 
 
 # ---------------------------------------------------------------------------
