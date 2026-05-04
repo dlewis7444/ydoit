@@ -7,32 +7,30 @@ Map keyboard shortcuts to auto-type actions — type out strings, passwords, or 
 Very useful for pasting into systems that can't be pasted into.  (iLOs, some VMs, etc.)
 
 
-## Quick Start (Development)
+## Quick Start
+
+### Fedora
 
 ```bash
-git clone <repo-url>
-cd ydoit
-python -m venv --system-site-packages .venv
-source .venv/bin/activate
-pip install -e ".[dev]"
-pytest
-```
-
-### System Dependencies
-
-```bash
-# Fedora 42+
 sudo dnf install gnupg2 ydotool python3-gobject gtk4 libadwaita
-
-# Ubuntu 24.04+
-sudo apt install gnupg ydotool python3-gi gir1.2-gtk-4.0 gir1.2-adw-1
+systemctl --user enable --now ydotoold
+git clone https://github.com/dlewis7444/ydoit
+cd ydoit
+./scripts/build-rpm.sh
 ```
 
-### Enable ydotoold
+### Ubuntu / Debian
 
 ```bash
+sudo apt install gnupg ydotool python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 libsecret-1-0 meson
 systemctl --user enable --now ydotoold
+git clone https://github.com/dlewis7444/ydoit
+cd ydoit
+meson setup --prefix=/usr/local builddir
+sudo meson install -C builddir
 ```
+
+After install: launch **ydoit Manager** from the application grid, or run `ydoit` / `ydoit-gui` from a terminal.
 
 ## CLI Usage
 
@@ -47,6 +45,19 @@ ydoit export backup.json --plain          # Export unencrypted
 ydoit import backup.json                  # Import entries
 ydoit remove mypass                       # Remove an entry
 ```
+
+## Development
+
+```bash
+git clone https://github.com/dlewis7444/ydoit
+cd ydoit
+python -m venv --system-site-packages .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+pytest
+```
+
+`--system-site-packages` is required because PyGObject, GTK4, and libsecret are system packages, not on PyPI.
 
 ## License
 
