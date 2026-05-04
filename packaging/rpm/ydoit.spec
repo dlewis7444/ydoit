@@ -4,7 +4,7 @@ Release:        1%{?dist}
 Summary:        Keyboard shortcut auto-typer for GNOME/Wayland
 
 License:        GPL-3.0-or-later
-URL:            https://github.com/ydoit/ydoit
+URL:            https://github.com/dlewis7444/ydoit
 Source0:        %{name}-%{version}.tar.gz
 BuildArch:      noarch
 
@@ -52,5 +52,5 @@ update-desktop-database %{_datadir}/applications &>/dev/null || :
 %{_datadir}/icons/hicolor/symbolic/apps/org.ydoit.app-symbolic.svg
 
 %changelog
-* Mon Mar 10 2026 ydoit contributors - 2.0.0-1
+* Tue Mar 10 2026 ydoit contributors - 2.0.0-1
 - Initial RPM package
