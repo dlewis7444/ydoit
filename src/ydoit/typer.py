@@ -180,17 +180,22 @@ class Typer:
 
     @classmethod
     def daemon_socket(cls) -> Path | None:
-        """Return the first connectable ydotoold socket, or None."""
+        """Return the first connectable ydotoold socket, or None.
+
+        ydotoold uses an AF_UNIX SOCK_DGRAM socket; older builds may have
+        used SOCK_STREAM, so we try both before giving up.
+        """
         for path in cls._candidate_socket_paths():
             if not path.exists():
                 continue
-            try:
-                with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
-                    s.settimeout(0.5)
-                    s.connect(str(path))
-                return path
-            except OSError:
-                continue
+            for sock_type in (socket.SOCK_DGRAM, socket.SOCK_STREAM):
+                try:
+                    with socket.socket(socket.AF_UNIX, sock_type) as s:
+                        s.settimeout(0.5)
+                        s.connect(str(path))
+                    return path
+                except OSError:
+                    continue
         return None
 
     @classmethod
