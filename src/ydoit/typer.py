@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import os
 import shutil
+import socket
 import subprocess
+import time
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -15,6 +18,9 @@ if TYPE_CHECKING:
 # Maximum argument length to avoid OS limits. ydotool takes text as an
 # argument, so very long strings need to be chunked.
 _MAX_CHUNK_SIZE = 4096
+
+# Seconds to wait for the daemon socket to appear after a start attempt.
+_DAEMON_START_TIMEOUT = 5.0
 
 
 class Typer:
@@ -61,11 +67,7 @@ class Typer:
         if not text:
             return
 
-        if not self.check_daemon():
-            raise YdotoolError(
-                "ydotoold is not running. Start it with: "
-                "systemctl --user start ydotoold"
-            )
+        self.ensure_daemon()
 
         # Chunk long strings to avoid argument length limits
         chunks = [text[i : i + _MAX_CHUNK_SIZE] for i in range(0, len(text), _MAX_CHUNK_SIZE)]
@@ -149,8 +151,12 @@ class Typer:
                 timeout=60,
             )
         except subprocess.CalledProcessError as e:
+            # ydotool prints connection errors to stdout, not stderr — surface both.
+            detail = (e.stderr or "").strip() or (e.stdout or "").strip()
             raise YdotoolError(
-                f"ydotool type failed: {e.stderr.strip()}"
+                f"ydotool type failed (exit {e.returncode}): {detail}"
+                if detail
+                else f"ydotool type failed (exit {e.returncode})"
             ) from e
         except subprocess.TimeoutExpired as e:
             raise YdotoolError("ydotool type timed out (>60s)") from e
@@ -160,30 +166,75 @@ class Typer:
             ) from e
 
     @staticmethod
-    def check_daemon() -> bool:
-        """Check if ydotoold is running.
+    def _candidate_socket_paths() -> list[Path]:
+        """Socket paths the ydotool client checks, in order."""
+        paths: list[Path] = []
+        env_path = os.environ.get("YDOTOOL_SOCKET")
+        if env_path:
+            paths.append(Path(env_path))
+        runtime = os.environ.get("XDG_RUNTIME_DIR")
+        if runtime:
+            paths.append(Path(runtime) / ".ydotool_socket")
+        paths.append(Path("/tmp/.ydotool_socket"))
+        return paths
+
+    @classmethod
+    def daemon_socket(cls) -> Path | None:
+        """Return the first connectable ydotoold socket, or None."""
+        for path in cls._candidate_socket_paths():
+            if not path.exists():
+                continue
+            try:
+                with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
+                    s.settimeout(0.5)
+                    s.connect(str(path))
+                return path
+            except OSError:
+                continue
+        return None
+
+    @classmethod
+    def check_daemon(cls) -> bool:
+        """Check if ydotoold is reachable via its socket.
 
         Returns:
-            True if the daemon is running.
+            True if a connectable ydotoold socket is found.
         """
+        return cls.daemon_socket() is not None
+
+    @classmethod
+    def ensure_daemon(cls, timeout: float = _DAEMON_START_TIMEOUT) -> None:
+        """Make sure ydotoold is reachable, attempting to start it if not.
+
+        Tries `systemctl --user start ydotoold` and polls for the socket.
+
+        Raises:
+            YdotoolError: If the daemon cannot be started or reached.
+        """
+        if cls.check_daemon():
+            return
+
         try:
-            result = subprocess.run(
-                ["pgrep", "-x", "ydotoold"],
+            subprocess.run(
+                ["systemctl", "--user", "start", "ydotoold.service"],
                 capture_output=True,
-                timeout=5,
+                text=True,
+                timeout=10,
             )
-            return result.returncode == 0
-        except Exception:
-            # Also check via systemctl
-            try:
-                result = subprocess.run(
-                    ["systemctl", "--user", "is-active", "--quiet", "ydotoold"],
-                    capture_output=True,
-                    timeout=5,
-                )
-                return result.returncode == 0
-            except Exception:
-                return False
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            pass  # fall through to the final probe below
+
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            if cls.check_daemon():
+                return
+            time.sleep(0.1)
+
+        raise YdotoolError(
+            "ydotoold is not running and could not be started automatically.\n"
+            "Try: systemctl --user start ydotoold\n"
+            "Or check the unit:  systemctl --user status ydotoold"
+        )
 
     @staticmethod
     def check_permissions() -> bool:
