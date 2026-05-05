@@ -372,17 +372,22 @@ def _cmd_sync_shortcuts(args: argparse.Namespace) -> int:
         _error(str(e))
         return constants.EXIT_ERROR
 
-    if result.total_changes == 0 and not result.errors:
+    if result.success and result.total_changes == 0:
         _info("Shortcuts are in sync")
-    elif result.errors:
-        _error(f"Sync complete: {result}")
-    else:
+    elif result.success:
         _info(f"Sync complete: {result}")
+    else:
+        _error(f"Sync failed: {result}")
 
+    for c in result.conflicts:
+        _error(
+            f"  {c.our_label!r} (in '{c.our_category}') wants {c.our_keycombo}, "
+            f"already bound to {c.conflict.existing_name!r} ({c.existing_source_label()})"
+        )
     for error in result.errors:
-        _error(error)
+        _error(f"  {error}")
 
-    return constants.EXIT_OK if not result.errors else constants.EXIT_ERROR
+    return constants.EXIT_OK if result.success else constants.EXIT_ERROR
 
 
 def _cmd_export(args: argparse.Namespace) -> int:
@@ -455,6 +460,15 @@ def _cmd_import(args: argparse.Namespace) -> int:
     result = sm.sync(config)
     if result.total_changes:
         _info(f"Shortcuts: {result}")
+    if not result.success:
+        _error(f"Shortcut sync issues: {result}")
+        for c in result.conflicts:
+            _error(
+                f"  {c.our_label!r} (in '{c.our_category}') wants {c.our_keycombo}, "
+                f"already bound to {c.conflict.existing_name!r} ({c.existing_source_label()})"
+            )
+        for err in result.errors:
+            _error(f"  {err}")
 
     return constants.EXIT_OK
 

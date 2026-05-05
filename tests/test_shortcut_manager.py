@@ -231,6 +231,32 @@ class TestSyncResult:
     def test_with_errors(self) -> None:
         r = SyncResult(errors=["something broke"])
         assert "1 errors" in str(r)
+        assert r.success is False
+
+    def test_success_when_clean(self) -> None:
+        r = SyncResult(added=2)
+        assert r.success is True
+
+    def test_success_false_with_conflicts(self) -> None:
+        from ydoit.shortcut_manager import ConflictDetail, ConflictInfo
+
+        r = SyncResult(
+            conflicts=[
+                ConflictDetail(
+                    our_trigger="t",
+                    our_category="general",
+                    our_label="t",
+                    our_keycombo="Super+F1",
+                    conflict=ConflictInfo(
+                        keycombo="Super+F1",
+                        existing_name="Other",
+                        existing_source="custom",
+                    ),
+                )
+            ]
+        )
+        assert r.success is False
+        assert "1 conflicts" in str(r)
 
     def test_total_changes_only_added(self) -> None:
         r = SyncResult(added=5)
@@ -1044,8 +1070,14 @@ class TestSync:
         config = make_config(make_entry("home1", "Super+F11", "Home Password"))
         result = mgr.sync(config)
 
-        assert len(result.errors) == 1
-        assert "home1" in result.errors[0]
+        assert result.errors == []
+        assert len(result.conflicts) == 1
+        assert result.success is False
+        c = result.conflicts[0]
+        assert c.our_trigger == "home1"
+        assert c.our_keycombo == "Super+F11"
+        assert c.conflict.existing_name == "Screenshot Tool"
+        assert c.conflict.existing_source == "custom"
         assert result.total_changes == 0
         # No shortcuts were added
         media_keys_mock.set_strv.assert_not_called()

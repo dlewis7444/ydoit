@@ -50,6 +50,28 @@ class ConflictInfo:
 
 
 @dataclass
+class ConflictDetail:
+    """A pre-flight conflict between one of our entries and an existing shortcut."""
+
+    our_trigger: str
+    our_category: str
+    our_label: str
+    our_keycombo: str
+    conflict: ConflictInfo
+
+    def existing_source_label(self) -> str:
+        """Human-readable description of where the conflicting shortcut lives."""
+        src = self.conflict.existing_source
+        if src == "ydoit":
+            return "another ydoit entry"
+        if src == "custom":
+            return "GNOME custom shortcut"
+        if src == "builtin":
+            return "GNOME built-in shortcut"
+        return src
+
+
+@dataclass
 class SyncResult:
     """Result of a shortcut sync operation."""
 
@@ -57,10 +79,16 @@ class SyncResult:
     updated: int = 0
     removed: int = 0
     errors: list[str] = field(default_factory=list)
+    conflicts: list[ConflictDetail] = field(default_factory=list)
 
     @property
     def total_changes(self) -> int:
         return self.added + self.updated + self.removed
+
+    @property
+    def success(self) -> bool:
+        """True if sync produced no conflicts and no errors."""
+        return not self.errors and not self.conflicts
 
     def __str__(self) -> str:
         parts = []
@@ -70,6 +98,8 @@ class SyncResult:
             parts.append(f"{self.updated} updated")
         if self.removed:
             parts.append(f"{self.removed} removed")
+        if self.conflicts:
+            parts.append(f"{len(self.conflicts)} conflicts")
         if self.errors:
             parts.append(f"{len(self.errors)} errors")
         return ", ".join(parts) if parts else "no changes"
@@ -272,11 +302,16 @@ class ShortcutManager:
                 continue
             conflict = self.find_conflict(entry.keycombo, exclude_entry=entry_trigger)
             if conflict:
-                result.errors.append(
-                    f"Shortcut {entry.keycombo!r} for {entry_trigger!r} conflicts with "
-                    f"{conflict.existing_source} shortcut {conflict.existing_name!r}"
+                result.conflicts.append(
+                    ConflictDetail(
+                        our_trigger=entry_trigger,
+                        our_category=entry.category,
+                        our_label=entry.display_label,
+                        our_keycombo=entry.keycombo,
+                        conflict=conflict,
+                    )
                 )
-        if result.errors:
+        if result.conflicts:
             return result
 
         # Remove stale shortcuts

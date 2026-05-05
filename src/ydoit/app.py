@@ -13,7 +13,38 @@ from ydoit.config_manager import ConfigManager
 from ydoit.exceptions import DecryptionError, GioNotAvailableError
 from ydoit.keyring_manager import KeyringManager
 from ydoit.models import Config
-from ydoit.shortcut_manager import ShortcutManager
+from ydoit.shortcut_manager import ShortcutManager, SyncResult
+
+
+def _format_sync_failure(result: SyncResult) -> str:
+    """Build a human-readable explanation of why a sync failed."""
+    lines: list[str] = []
+    if result.conflicts:
+        lines.append(
+            "No GNOME shortcuts were changed because of these conflicts:"
+            if len(result.conflicts) > 1
+            else "No GNOME shortcuts were changed because of this conflict:"
+        )
+        for c in result.conflicts:
+            lines.append("")
+            lines.append(
+                f"  • {c.our_label!r} (in '{c.our_category}') wants "
+                f"{c.our_keycombo}, which is already bound to "
+                f"{c.conflict.existing_name!r} ({c.existing_source_label()})."
+            )
+        lines.append("")
+        lines.append("To fix:")
+        lines.append(
+            "  – Open GNOME Settings → Keyboard and remove or change the existing binding, or"
+        )
+        lines.append("  – Edit the entry in ydoit and pick a different shortcut.")
+    if result.errors:
+        if lines:
+            lines.append("")
+        lines.append("Other errors:")
+        for err in result.errors:
+            lines.append(f"  • {err}")
+    return "\n".join(lines)
 
 
 class YdoitApp(Adw.Application):
@@ -93,21 +124,29 @@ class YdoitApp(Adw.Application):
 
     # --- Config persistence ---
 
-    def save_config(self) -> None:
-        """Save config and sync shortcuts. Call this after any mutation."""
+    def save_config(self) -> SyncResult | None:
+        """Save config and sync shortcuts. Call this after any mutation.
+
+        Returns the SyncResult if a sync was attempted, or None if skipped
+        (no config, no passphrase, or Gio unavailable). Callers can check
+        ``result.success`` before showing success UI.
+        """
         if self._config is None or self._passphrase is None:
-            return
+            return None
         self._cm.save(self._config, passphrase=self._passphrase)
-        if self._gio_available:
-            try:
-                result = self._sm.sync(self._config)
-                if result.errors:
-                    self._main_window.show_alert(
-                        "Sync Warning",
-                        "\n".join(str(e) for e in result.errors),
-                    )
-            except GioNotAvailableError:
-                self._gio_available = False
+        if not self._gio_available:
+            return None
+        try:
+            result = self._sm.sync(self._config)
+        except GioNotAvailableError:
+            self._gio_available = False
+            return None
+        if not result.success:
+            self._main_window.show_alert(
+                "Shortcut sync failed",
+                _format_sync_failure(result),
+            )
+        return result
 
     def update_passphrase(self, new_passphrase: str) -> None:
         """Update stored passphrase (called after change_passphrase)."""

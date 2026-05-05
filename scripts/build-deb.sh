@@ -45,7 +45,7 @@ Architecture: all
 Maintainer: dlewis7444 <dlewis7444@users.noreply.github.com>
 Section: utils
 Priority: optional
-Depends: python3 (>= 3.10), python3-gi, gir1.2-gtk-4.0, gir1.2-adw-1, libsecret-1-0, gnupg, ydotool
+Depends: python3 (>= 3.10), python3-gi, gir1.2-gtk-4.0, gir1.2-adw-1, libsecret-1-0, gnupg, ydotool, systemd
 Homepage: https://github.com/dlewis7444/ydoit
 Description: Keyboard shortcut auto-typer for GNOME/Wayland
  ydoit lets you bind GNOME keyboard shortcuts that automatically type
@@ -59,8 +59,21 @@ EOF
 set -e
 update-desktop-database -q /usr/share/applications 2>/dev/null || true
 gtk-update-icon-cache -q -t /usr/share/icons/hicolor 2>/dev/null || true
+# Enable user-scoped ydotoold for all users on next login.
+systemctl --global enable ydotoold.service >/dev/null 2>&1 || true
 POSTINST
         chmod 755 /tmp/staging/DEBIAN/postinst
+
+        cat > /tmp/staging/DEBIAN/prerm <<"PRERM"
+#!/bin/sh
+set -e
+case "$1" in
+    remove|purge)
+        systemctl --global disable ydotoold.service >/dev/null 2>&1 || true
+        ;;
+esac
+PRERM
+        chmod 755 /tmp/staging/DEBIAN/prerm
 
         cat > /tmp/staging/DEBIAN/postrm <<"POSTRM"
 #!/bin/sh

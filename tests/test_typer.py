@@ -23,8 +23,11 @@ def typer() -> Typer:
 
 @pytest.fixture
 def mock_daemon() -> MagicMock:
-    """Mock ydotoold as running."""
-    with patch.object(Typer, "check_daemon", return_value=True) as m:
+    """Mock ydotoold as running and reachable."""
+    with (
+        patch.object(Typer, "check_daemon", return_value=True),
+        patch.object(Typer, "ensure_daemon", return_value=None) as m,
+    ):
         yield m
 
 
@@ -63,8 +66,13 @@ class TestTyper:
             assert mock_run.call_count == 4  # 3 full + 1 remainder
 
     def test_type_string_daemon_not_running(self, typer: Typer) -> None:
+        # ensure_daemon raises when it can neither find nor start the daemon.
         with (
-            patch.object(Typer, "check_daemon", return_value=False),
+            patch.object(
+                Typer,
+                "ensure_daemon",
+                side_effect=YdotoolError("ydotoold is not running"),
+            ),
             pytest.raises(YdotoolError, match="not running"),
         ):
             typer.type_string("hello")
@@ -167,16 +175,63 @@ class TestTyper:
 class TestTyperSystemChecks:
     """Tests for daemon and permission checks."""
 
-    def test_check_daemon_via_pgrep(self) -> None:
-        with patch("ydoit.typer.subprocess.run") as mock_run:
-            mock_run.return_value = subprocess.CompletedProcess([], 0)
+    def test_check_daemon_reachable(self, tmp_path: Path) -> None:
+        sock_path = tmp_path / ".ydotool_socket"
+        sock_path.touch()
+        # Patch the candidate paths to point at our temp socket.
+        with (
+            patch.object(Typer, "_candidate_socket_paths", return_value=[sock_path]),
+            patch("ydoit.typer.socket.socket") as mock_socket,
+        ):
+            mock_sock = MagicMock()
+            mock_socket.return_value.__enter__.return_value = mock_sock
             assert Typer.check_daemon() is True
+            mock_sock.connect.assert_called_once_with(str(sock_path))
 
-    def test_check_daemon_not_running(self) -> None:
-        with patch("ydoit.typer.subprocess.run") as mock_run:
-            mock_run.return_value = subprocess.CompletedProcess([], 1)
-            # Falls through to systemctl check, which also returns 1
+    def test_check_daemon_no_socket(self, tmp_path: Path) -> None:
+        # No file exists at the candidate path.
+        with patch.object(
+            Typer, "_candidate_socket_paths", return_value=[tmp_path / "missing"]
+        ):
             assert Typer.check_daemon() is False
+
+    def test_check_daemon_socket_exists_but_unreachable(self, tmp_path: Path) -> None:
+        sock_path = tmp_path / ".ydotool_socket"
+        sock_path.touch()
+        with (
+            patch.object(Typer, "_candidate_socket_paths", return_value=[sock_path]),
+            patch("ydoit.typer.socket.socket") as mock_socket,
+        ):
+            mock_sock = MagicMock()
+            mock_sock.connect.side_effect = OSError("Connection refused")
+            mock_socket.return_value.__enter__.return_value = mock_sock
+            assert Typer.check_daemon() is False
+
+    def test_ensure_daemon_already_running(self) -> None:
+        with patch.object(Typer, "check_daemon", return_value=True):
+            Typer.ensure_daemon()  # should not raise
+
+    def test_ensure_daemon_starts_via_systemctl(self) -> None:
+        # First check fails, then succeeds after systemctl start.
+        with (
+            patch.object(Typer, "check_daemon", side_effect=[False, True]),
+            patch("ydoit.typer.subprocess.run") as mock_run,
+        ):
+            Typer.ensure_daemon(timeout=1.0)
+            assert mock_run.called
+            assert mock_run.call_args[0][0][:3] == [
+                "systemctl",
+                "--user",
+                "start",
+            ]
+
+    def test_ensure_daemon_raises_when_unreachable(self) -> None:
+        with (
+            patch.object(Typer, "check_daemon", return_value=False),
+            patch("ydoit.typer.subprocess.run"),
+            pytest.raises(YdotoolError, match="not running"),
+        ):
+            Typer.ensure_daemon(timeout=0.1)
 
     def test_check_permissions_no_uinput(self) -> None:
         with patch("ydoit.typer.Path") as mock_path:

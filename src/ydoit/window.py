@@ -183,8 +183,10 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _on_sync_clicked(self, *args: object) -> None:
         app = self.get_application()
-        app.save_config()
-        self.show_toast("Synced")
+        result = app.save_config()
+        # Only toast on success; failures already produced an alert dialog.
+        if result is None or result.success:
+            self.show_toast("Synced")
 
     def _on_settings_clicked(self, *args: object) -> None:
         from ydoit.settings_page import SettingsPage
