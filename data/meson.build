@@ -20,6 +20,13 @@ install_data(
   install_dir: join_paths(get_option('datadir'), 'icons', 'hicolor', 'symbolic', 'apps'),
 )
 
+# User-scoped systemd unit for ydotoold. Installed to /usr/lib/systemd/user/
+# so packaging scripts can `systemctl --global enable` it for all users.
+install_data(
+  'ydotoold.service',
+  install_dir: join_paths(get_option('prefix'), 'lib', 'systemd', 'user'),
+)
+
 # Optional build-time validation tests
 
 desktop_file_validate = find_program('desktop-file-validate', required: false)

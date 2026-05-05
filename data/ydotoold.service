@@ -1,0 +1,16 @@
+[Unit]
+Description=ydotool user daemon (managed by ydoit)
+Documentation=man:ydotoold(8) https://github.com/dlewis7444/ydoit
+
+[Service]
+Type=simple
+Restart=on-failure
+RestartSec=2
+# %t expands to XDG_RUNTIME_DIR (/run/user/<uid>), which is the first path
+# the ydotool client checks — so no YDOTOOL_SOCKET export is needed.
+ExecStart=/usr/bin/ydotoold --socket-path=%t/.ydotool_socket --socket-perm=0600
+KillMode=process
+TimeoutStopSec=10
+
+[Install]
+WantedBy=default.target
