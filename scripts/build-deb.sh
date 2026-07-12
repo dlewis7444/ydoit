@@ -45,13 +45,13 @@ Architecture: all
 Maintainer: David Lewis <david@lewisit.com>
 Section: utils
 Priority: optional
-Depends: python3 (>= 3.10), python3-gi, gir1.2-gtk-4.0, gir1.2-adw-1, libsecret-1-0, gnupg, ydotool, systemd
+Depends: python3 (>= 3.10), python3-gi, python3-dbus, gir1.2-gtk-4.0, gir1.2-adw-1, libsecret-1-0, gnupg, ydotool, systemd
 Homepage: https://github.com/dlewis7444/ydoit
 Description: Keyboard shortcut auto-typer for GNOME/Wayland
  ydoit lets you bind GNOME keyboard shortcuts that automatically type
  predefined strings into the active window. It stores entries in a
  GPG-encrypted configuration file, syncs keybindings with GNOME, and
- delivers keystrokes natively on Wayland via ydotool.
+ delivers keystrokes via ydotool or Mutter RemoteDesktop.
 EOF
 
         cat > /tmp/staging/DEBIAN/postinst <<"POSTINST"

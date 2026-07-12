@@ -8,15 +8,21 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from ydoit import constants
 from ydoit.exceptions import YdoitError, YdotoolError
 from ydoit.models import Entry, Settings
-from ydoit.typer import _MAX_CHUNK_SIZE, Typer
+from ydoit.typer import (
+    _MAX_CHUNK_SIZE,
+    _char_to_keysym,
+    _expand_ydotool_escapes,
+    Typer,
+)
 
 
 @pytest.fixture
 def typer() -> Typer:
-    """Create a Typer with defaults."""
-    t = Typer(typing_delay_ms=5, hold_delay_ms=5)
+    """Create a Typer forced to ydotool (stable under local Mutter)."""
+    t = Typer(typing_delay_ms=5, hold_delay_ms=5, backend="ydotool")
     t._ydotool_path = "/usr/bin/ydotool"
     return t
 
@@ -29,6 +35,129 @@ def mock_daemon() -> MagicMock:
         patch.object(Typer, "ensure_daemon", return_value=None) as m,
     ):
         yield m
+
+
+class TestExpandEscapes:
+    """Mutter path must match ydotool --escape=1 defaults."""
+
+    def test_newline(self) -> None:
+        assert _expand_ydotool_escapes("a\\nb") == "a\nb"
+
+    def test_tab_return_backspace(self) -> None:
+        assert _expand_ydotool_escapes("\\t\\r\\b") == "\t\r\b"
+
+    def test_backslash(self) -> None:
+        assert _expand_ydotool_escapes("a\\\\b") == "a\\b"
+
+    def test_unknown_escape_kept(self) -> None:
+        assert _expand_ydotool_escapes("\\x") == "\\x"
+
+    def test_trailing_backslash(self) -> None:
+        assert _expand_ydotool_escapes("a\\") == "a\\"
+
+    def test_no_escapes(self) -> None:
+        assert _expand_ydotool_escapes("hello") == "hello"
+
+
+class TestCharToKeysym:
+    def test_return(self) -> None:
+        assert _char_to_keysym("\n") == 0xFF0D
+        assert _char_to_keysym("\r") == 0xFF0D
+
+    def test_tab_backspace(self) -> None:
+        assert _char_to_keysym("\t") == 0xFF09
+        assert _char_to_keysym("\b") == 0xFF08
+
+    def test_latin1(self) -> None:
+        assert _char_to_keysym("A") == ord("A")
+        assert _char_to_keysym("é") == ord("é")
+
+    def test_unicode_plane(self) -> None:
+        assert _char_to_keysym("€") == 0x01000000 + ord("€")
+
+
+class TestBackendSelection:
+    """Auto policy: remote+mutter → mutter; else ydotool; else mutter."""
+
+    def test_force_mutter_when_available(self) -> None:
+        t = Typer(backend="mutter")
+        with patch.object(Typer, "_mutter_available", return_value=True):
+            assert t.effective_backend() == "mutter"
+
+    def test_force_mutter_unavailable_raises(self) -> None:
+        t = Typer(backend="mutter")
+        with (
+            patch.object(Typer, "_mutter_available", return_value=False),
+            pytest.raises(YdotoolError, match="Mutter RemoteDesktop"),
+        ):
+            t.effective_backend()
+
+    def test_force_ydotool(self) -> None:
+        t = Typer(backend="ydotool")
+        assert t.effective_backend() == "ydotool"
+
+    def test_auto_remote_prefers_mutter(self) -> None:
+        t = Typer(backend="auto")
+        with (
+            patch.object(Typer, "_session_looks_remote", return_value=True),
+            patch.object(Typer, "_mutter_available", return_value=True),
+            patch.object(Typer, "check_daemon", return_value=True),
+        ):
+            assert t.effective_backend() == "mutter"
+
+    def test_auto_local_prefers_ydotool(self) -> None:
+        """Mutter D-Bus present on local seat must NOT steal ydotool."""
+        t = Typer(backend="auto")
+        with (
+            patch.object(Typer, "_session_looks_remote", return_value=False),
+            patch.object(Typer, "_mutter_available", return_value=True),
+            patch.object(Typer, "check_daemon", return_value=True),
+        ):
+            assert t.effective_backend() == "ydotool"
+
+    def test_auto_fallback_mutter_when_no_ydotool(self) -> None:
+        t = Typer(backend="auto")
+        with (
+            patch.object(Typer, "_session_looks_remote", return_value=False),
+            patch.object(Typer, "_mutter_available", return_value=True),
+            patch.object(Typer, "check_daemon", return_value=False),
+        ):
+            assert t.effective_backend() == "mutter"
+
+    def test_auto_none_available_raises(self) -> None:
+        t = Typer(backend="auto")
+        with (
+            patch.object(Typer, "_session_looks_remote", return_value=False),
+            patch.object(Typer, "_mutter_available", return_value=False),
+            patch.object(Typer, "check_daemon", return_value=False),
+            pytest.raises(YdotoolError, match="No input backend"),
+        ):
+            t.effective_backend()
+
+    def test_settings_backend(self) -> None:
+        t = Typer()
+        settings = Settings(input_backend="ydotool")
+        assert t.configured_backend(settings) == "ydotool"
+        assert t.effective_backend(settings) == "ydotool"
+
+    def test_env_overrides_settings(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv(constants.INPUT_BACKEND_ENV, "mutter")
+        t = Typer()
+        settings = Settings(input_backend="ydotool")
+        with patch.object(Typer, "_mutter_available", return_value=True):
+            assert t.configured_backend(settings) == "mutter"
+            assert t.effective_backend(settings) == "mutter"
+
+    def test_ctor_overrides_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv(constants.INPUT_BACKEND_ENV, "mutter")
+        t = Typer(backend="ydotool")
+        assert t.configured_backend() == "ydotool"
+
+    def test_session_remote_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("YDOIT_SESSION_REMOTE", "1")
+        assert Typer._session_looks_remote() is True
+        monkeypatch.setenv("YDOIT_SESSION_REMOTE", "0")
+        assert Typer._session_looks_remote() is False
 
 
 class TestTyper:
@@ -167,9 +296,20 @@ class TestTyper:
         self, typer: Typer, mock_daemon: MagicMock
     ) -> None:
         with patch("ydoit.typer.subprocess.run") as mock_run:
-            mock_run.side_effect = subprocess.CalledProcessError(1, "ydotool", stderr="error")
+            mock_run.side_effect = subprocess.CalledProcessError(
+                1, "ydotool", stderr="error"
+            )
             with pytest.raises(YdotoolError, match="failed"):
                 typer.type_string("hello")
+
+    def test_mutter_expands_escapes(self) -> None:
+        t = Typer(backend="mutter", typing_delay_ms=0, hold_delay_ms=0)
+        with (
+            patch.object(Typer, "_mutter_available", return_value=True),
+            patch.object(t, "_type_string_mutter") as mock_mutter,
+        ):
+            t.type_string("a\\nb")
+            mock_mutter.assert_called_once_with("a\nb")
 
 
 class TestTyperSystemChecks:
