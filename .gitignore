@@ -1,6 +1,17 @@
+# Internal design/planning — local only
+docs/
+
+# Agent / lab policy
 .claude/
 CLAUDE.md
+AGENTS.md
 .worktrees/
+
+# Publish / audit scratch
+public-repo-remediation-plan.md
+publish/
+*-mailmap
+*-redactions.txt
 
 # Python
 __pycache__/
@@ -11,6 +22,10 @@ dist/
 build/
 .eggs/
 *.whl
+
+# Local packaging artifacts
+*.rpm
+*.deb
 
 # Virtual environments
 .venv/
@@ -34,3 +49,5 @@ Thumbs.db
 
 # Sensitive data
 data.json
+data.json.gpg
+*.gpg

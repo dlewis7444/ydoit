@@ -1,5 +1,5 @@
 Name:           ydoit
-Version:        2.2.0
+Version:        2.2.1
 Release:        1%{?dist}
 Summary:        Keyboard shortcut auto-typer for GNOME/Wayland
 
@@ -64,6 +64,9 @@ update-desktop-database %{_datadir}/applications &>/dev/null || :
 %{_prefix}/lib/systemd/user/ydotoold.service
 
 %changelog
+* Sun Jul 12 2026 dlewis7444 <dlewis7444@users.noreply.github.com> - 2.2.1-1
+- Public-repo hygiene: generic author identity, drop internal docs from tree
+
 * Sun Jul 12 2026 dlewis7444 <dlewis7444@users.noreply.github.com> - 2.2.0-1
 - Selectable input backend: auto / Mutter RemoteDesktop / ydotool
 - GNOME Remote Desktop sessions type via Mutter (uinput is orphaned there)

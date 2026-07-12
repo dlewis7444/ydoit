@@ -25,6 +25,11 @@
   <launchable type="desktop-id">org.ydoit.app.desktop</launchable>
 
   <releases>
+    <release version="2.2.1" date="2026-07-12">
+      <description>
+        <p>Public-repo hygiene release: generic committer identity; internal planning docs no longer shipped.</p>
+      </description>
+    </release>
     <release version="2.2.0" date="2026-07-12">
       <description>
         <p>Selectable input backend (auto / Mutter RemoteDesktop / ydotool) for GNOME Remote Desktop sessions; escape expansion for Mutter; status shows configured vs effective backend. Built on top of the 2.1.0 ydotoold reliability fixes.</p>

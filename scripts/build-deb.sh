@@ -42,7 +42,7 @@ podman run --rm \
 Package: ydoit
 Version: ${VERSION}
 Architecture: all
-Maintainer: dlewis7444 <dlewis7444@users.noreply.github.com>
+Maintainer: ydoit contributors <dlewis7444@users.noreply.github.com>
 Section: utils
 Priority: optional
 Depends: python3 (>= 3.10), python3-gi, python3-dbus, gir1.2-gtk-4.0, gir1.2-adw-1, libsecret-1-0, gnupg, ydotool, systemd

@@ -1,5 +1,5 @@
 project('ydoit',
-  version: '2.2.0',
+  version: '2.2.1',
   license: 'MIT',
   meson_version: '>= 0.62.0',
 )
