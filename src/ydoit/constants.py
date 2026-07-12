@@ -30,6 +30,22 @@ DEFAULT_HOLD_DELAY_MS = 5
 DEFAULT_KEYRING_TIMEOUT_MIN = 15
 DEFAULT_CATEGORY = "general"
 
+# --- Input backends ---
+# "auto" picks Mutter on remote-like GNOME sessions, else ydotool, else Mutter.
+INPUT_BACKEND_AUTO = "auto"
+INPUT_BACKEND_MUTTER = "mutter"
+INPUT_BACKEND_YDOTOOL = "ydotool"
+DEFAULT_INPUT_BACKEND = INPUT_BACKEND_AUTO
+VALID_INPUT_BACKENDS = frozenset(
+    {
+        INPUT_BACKEND_AUTO,
+        INPUT_BACKEND_MUTTER,
+        INPUT_BACKEND_YDOTOOL,
+    }
+)
+# Env var overrides persisted settings for one-shot debugging.
+INPUT_BACKEND_ENV = "YDOIT_INPUT_BACKEND"
+
 # --- Validation ---
 ENTRY_TRIGGER_PATTERN = r"^[a-zA-Z0-9_-]+$"
 MAX_ENTRY_TRIGGER_LENGTH = 64

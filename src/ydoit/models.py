@@ -91,6 +91,13 @@ class Entry:
         )
 
 
+def _normalize_input_backend(value: Any) -> str:
+    """Return a valid input backend string; unknown values become auto."""
+    if isinstance(value, str) and value in constants.VALID_INPUT_BACKENDS:
+        return value
+    return constants.DEFAULT_INPUT_BACKEND
+
+
 @dataclass
 class Settings:
     """Global application settings."""
@@ -99,6 +106,7 @@ class Settings:
     hold_delay_ms: int = constants.DEFAULT_HOLD_DELAY_MS
     use_keyring_cache: bool = True
     keyring_timeout_min: int = constants.DEFAULT_KEYRING_TIMEOUT_MIN
+    input_backend: str = constants.DEFAULT_INPUT_BACKEND
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize to a dictionary."""
@@ -107,6 +115,7 @@ class Settings:
             "hold_delay_ms": self.hold_delay_ms,
             "use_keyring_cache": self.use_keyring_cache,
             "keyring_timeout_min": self.keyring_timeout_min,
+            "input_backend": _normalize_input_backend(self.input_backend),
         }
 
     @classmethod
@@ -118,6 +127,9 @@ class Settings:
             use_keyring_cache=data.get("use_keyring_cache", True),
             keyring_timeout_min=data.get(
                 "keyring_timeout_min", constants.DEFAULT_KEYRING_TIMEOUT_MIN
+            ),
+            input_backend=_normalize_input_backend(
+                data.get("input_backend", constants.DEFAULT_INPUT_BACKEND)
             ),
         )
 

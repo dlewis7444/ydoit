@@ -201,9 +201,11 @@ def _cmd_type(args: argparse.Namespace) -> int:
         _error(str(e))
         return constants.EXIT_ENTRY_NOT_FOUND
 
+    backend = getattr(args, "backend", None)
     typer = Typer(
         typing_delay_ms=config.settings.typing_delay_ms,
         hold_delay_ms=config.settings.hold_delay_ms,
+        backend=backend,
     )
 
     try:
@@ -478,13 +480,51 @@ def _cmd_status(args: argparse.Namespace) -> int:
     print(f"{C.BOLD}ydoit v{__version__}{C.RESET}")
     print()
 
-    # Config
+    # Config (+ settings when passphrase is already cached — never block status)
     cm = ConfigManager()
+    settings = None
     if cm.exists():
-        # We can't show entry count without decrypting
         print(f"  Config:    {cm.data_file} {C.GREEN}(exists){C.RESET}")
+        try:
+            from ydoit.keyring_manager import KeyringManager
+
+            km = KeyringManager()
+            cached = km.retrieve_passphrase(timeout_min=0) if km.is_available() else None
+            if cached:
+                settings = ConfigManager().load(cached).settings
+                print(f"  Backend:   configured={settings.input_backend}")
+            else:
+                print(
+                    f"  Backend:   configured=(locked; "
+                    f"default {constants.DEFAULT_INPUT_BACKEND})"
+                )
+        except Exception:
+            print(
+                f"  Backend:   configured=(locked; "
+                f"default {constants.DEFAULT_INPUT_BACKEND})"
+            )
     else:
         print(f"  Config:    {cm.data_file} {C.DIM}(not found){C.RESET}")
+        print(f"  Backend:   configured={constants.DEFAULT_INPUT_BACKEND} (default)")
+
+    # Effective backend resolution
+    try:
+        typer = Typer()
+        configured = typer.configured_backend(settings)
+        effective = typer.effective_backend(settings)
+        print(f"  Effective: {effective}  {C.DIM}(from {configured}){C.RESET}")
+    except YdotoolError as e:
+        print(f"  Effective: {C.RED}none{C.RESET}  {C.DIM}({e}){C.RESET}")
+
+    mutter = Typer._mutter_available()
+    remote = Typer._session_looks_remote()
+    print(
+        f"  Mutter:    {C.GREEN + 'available' + C.RESET if mutter else C.RED + 'not available' + C.RESET}"
+    )
+    print(
+        f"  Remote:    {C.YELLOW + 'yes' + C.RESET if remote else 'no'}"
+        + (f"  {C.YELLOW}(prefer Mutter on GNOME RDP){C.RESET}" if remote else "")
+    )
 
     # ydotoold
     if Typer.check_daemon():
@@ -497,6 +537,16 @@ def _cmd_status(args: argparse.Namespace) -> int:
         print(f"  uinput:    {C.GREEN}accessible{C.RESET}")
     else:
         print(f"  uinput:    {C.RED}not accessible{C.RESET}")
+
+    if remote and (
+        settings is None or settings.input_backend == constants.INPUT_BACKEND_YDOTOOL
+    ):
+        # Warn when user forced ydotool on a remote session (silent failure risk)
+        if settings is not None and settings.input_backend == constants.INPUT_BACKEND_YDOTOOL:
+            _warn(
+                "Session looks remote but input backend is ydotool; "
+                "keys may not reach the focused app. Prefer Auto or Mutter."
+            )
 
     # Keyring
     try:
@@ -547,6 +597,15 @@ def build_parser() -> argparse.ArgumentParser:
     # type
     type_p = subparsers.add_parser("type", help="Type an entry's content")
     type_p.add_argument("trigger", help="Entry trigger to type")
+    type_p.add_argument(
+        "--backend",
+        choices=sorted(constants.VALID_INPUT_BACKENDS),
+        default=None,
+        help=(
+            "Input backend override for this run "
+            f"(default: config / {constants.INPUT_BACKEND_ENV} / auto)"
+        ),
+    )
 
     # list
     subparsers.add_parser("list", help="List all entries")

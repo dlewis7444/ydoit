@@ -125,6 +125,7 @@ class TestSettings:
         assert s.hold_delay_ms == 5
         assert s.use_keyring_cache is True
         assert s.keyring_timeout_min == 15
+        assert s.input_backend == "auto"
 
     def test_round_trip(self) -> None:
         s = Settings(
@@ -132,6 +133,7 @@ class TestSettings:
             hold_delay_ms=20,
             use_keyring_cache=False,
             keyring_timeout_min=0,
+            input_backend="mutter",
         )
         d = s.to_dict()
         restored = Settings.from_dict(d)
@@ -139,11 +141,17 @@ class TestSettings:
         assert restored.hold_delay_ms == 20
         assert restored.use_keyring_cache is False
         assert restored.keyring_timeout_min == 0
+        assert restored.input_backend == "mutter"
 
     def test_from_dict_defaults(self) -> None:
         s = Settings.from_dict({})
         assert s.typing_delay_ms == 5
         assert s.use_keyring_cache is True
+        assert s.input_backend == "auto"
+
+    def test_unknown_input_backend_becomes_auto(self) -> None:
+        s = Settings.from_dict({"input_backend": "libei"})
+        assert s.input_backend == "auto"
 
 
 class TestConfig:

@@ -113,6 +113,12 @@ class TestBuildParser:
         args = parser.parse_args(["type", "home1"])
         assert args.command == "type"
         assert args.trigger == "home1"
+        assert args.backend is None
+
+    def test_type_backend_flag(self) -> None:
+        parser = build_parser()
+        args = parser.parse_args(["type", "home1", "--backend", "mutter"])
+        assert args.backend == "mutter"
 
     def test_list_subcommand(self) -> None:
         parser = build_parser()
